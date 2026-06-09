@@ -77,6 +77,19 @@ One environment, deployed from `main` (see [docs/PLAN.md](docs/PLAN.md) §12).
 - **Repo secrets required:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
   `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`.
 
+## Project state & changelog — keep current
+
+This repo carries its own memory so context survives session/memory resets:
+
+- **[docs/PROJECT-STATE.md](docs/PROJECT-STATE.md)** — the "resume here" snapshot: phase,
+  locked decisions, env/secrets, next steps. **Read it first** when starting a session.
+- **[CHANGELOG.md](CHANGELOG.md)** — what's been done, Keep-a-Changelog format.
+
+**Rule:** when you complete meaningful work or add a feature, update **both** in the same
+change — a dated bullet in CHANGELOG under Added/Changed/Fixed/Removed, and the relevant
+fields in PROJECT-STATE (phase, next steps, env). Don't rely on disposable memory for project
+context; put it here.
+
 ## Do not
 
 - Commit secrets. Use `wrangler secret` / `.dev.vars` (gitignored). Never hardcode
