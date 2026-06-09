@@ -55,7 +55,16 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
-- _nothing yet_
+- **2026-06-09 — Deploy: workspace deps broke wrangler install.** Once `sentry`/`quantum`
+  gained `workspace:^` deps (`@qstd/db`), `cloudflare/wrangler-action` died with
+  `EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"` — it was running `npm i wrangler`
+  inside the worker dir and npm can't parse `workspace:`. Added `wrangler` as a root
+  devDependency (so the action detects it and skips the install) and set the action's
+  `packageManager: pnpm` for any fallback.
+- **2026-06-09 — Deploy pinned to wrangler v4.** The first `deploy.yml` run failed at every
+  worker with "Missing entry-point": `cloudflare/wrangler-action@v3` fell back to wrangler
+  3.90.0, which predates `wrangler.jsonc` config support (added in 3.91.0) and so never read
+  `main`. (Superseded by the root-devDependency approach above.)
 
 ### Removed
 
