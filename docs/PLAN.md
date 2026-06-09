@@ -286,12 +286,61 @@ and hardest — everything credible flows from it.
 
 ---
 
-## 11. Open questions for the next session
+## 11. Authentication — Better Auth
+
+The **Admin** control plane must be gated; the **Pitch** view is public. We use
+[**Better Auth**](https://www.better-auth.com) for a fast, framework-agnostic setup that
+runs on Workers and persists to the same Neon database.
+
+- **Where it lives:** in `ui-worker` (the BFF). It owns `/api/auth/*` and protects
+  `/admin` + all admin/control endpoints (set scheme, advance era, inject trade, reset).
+  The business Workers (`sentry`/`quantum`/`integration`/`hacker`) are reached only via
+  Service Bindings from the BFF, so they don't need their own auth surface.
+- **Adapter:** Better Auth **Drizzle adapter** against Neon Postgres — its tables
+  (`user`, `session`, `account`, `verification`) live alongside our app schema and are
+  generated via the Better Auth CLI (`npx @better-auth/cli generate`), then folded into our
+  Drizzle migrations so one `migrate` provisions everything.
+- **Method:** email + password (simplest for a demo) with a single seeded admin account;
+  GitHub OAuth is a drop-in later if a prospect wants SSO.
+- **Session:** cookie-based sessions stored in Neon; admin endpoints check
+  `auth.api.getSession()` and 401 otherwise. Keep a server-only `ADMIN_TOKEN` as a
+  break-glass header for the cron/agent paths that aren't browser sessions.
+- **Secrets:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (the deployed UI origin),
+  `NEON_DATABASE_URL` — all via `wrangler secret` / GitHub Actions secrets, never committed.
+
+See the **`/neon-db`** and **`/cloudflare-workers`** skills for the adapter wiring and
+Workers specifics.
+
+---
+
+## 12. Environments & CI/CD
+
+**One environment, deployed straight from `main`.** No staging/preview tier — keep the demo
+simple and the URL stable. Branch protection + the CI gate are what keep `main` releasable.
+
+- **`.github/workflows/ci.yml`** — the **quality gate**. Runs on every PR and on push to
+  `main`: `pnpm install --frozen-lockfile` → `pnpm check` (format:check + lint + typecheck +
+  test). This is the same gate as the local **`/check`** skill.
+- **`.github/workflows/deploy.yml`** — runs on **push to `main`** only:
+  1. **quality** — re-runs `pnpm check` (no green gate, no deploy).
+  2. **migrate** — runs Drizzle migrations against Neon (`NEON_DATABASE_URL`), only if
+     `packages/db` exists.
+  3. **discover** — finds every `workers/*` dir containing a `wrangler.{jsonc,toml}`.
+  4. **deploy** — matrix over discovered Workers, each via `cloudflare/wrangler-action`
+     (`wrangler deploy`). Deploys nothing until the first Worker config lands, so the
+     pipeline is safe to merge now.
+
+**Required GitHub repo secrets:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+`NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`. Worker runtime secrets are pushed separately via
+`wrangler secret put` (or set in the Cloudflare dashboard) — Actions only needs the deploy
+token + the migration DB URL.
+
+---
+
+## 13. Open questions for the next session
 
 1. **Break mode default** — ship `genuine` (real live factoring, small keys) or `projected`
    (real keys, simulated countdown) as the out-of-the-box pitch default?
 2. **Mapping fidelity** — how realistic should Sentry⇄Quantum field mapping be? (Mirror the
    real cc-integrations asset/liability mappings, or a representative subset?)
-3. **Auth on the live deployment** — is `ADMIN_TOKEN` enough, or do we need Cloudflare Access
-   in front of `/admin` for a public-facing pitch URL?
-4. **Branding** — neutral demo branding, or skinned for a specific prospect?
+3. **Branding** — neutral demo branding, or skinned for a specific prospect?

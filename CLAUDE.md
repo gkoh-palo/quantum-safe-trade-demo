@@ -54,6 +54,29 @@ this and reports/fixes failures.
   round-trip (`seal`→`open`) tests and, for the break engine, a test asserting PQC schemes
   are **not** recoverable while classical schemes are.
 
+## Project skills
+
+Domain guidance lives in `.claude/skills/` — consult the relevant one before working in that
+area:
+
+- **`/cloudflare-workers`** — wrangler config, Service Bindings, Queues, Durable Objects,
+  Cron, Workers Assets, secrets.
+- **`/api-design`** — REST conventions, Zod validation, error envelope, the wire-message contract.
+- **`/neon-db`** — Neon + Drizzle driver choice, migrations, transactions, Better Auth adapter.
+- **`/check`** — run the quality gate and fix failures.
+
+For latest external API specifics, use the global **`/docs`** (Context7) skill rather than memory.
+
+## CI/CD & environments
+
+One environment, deployed from `main` (see [docs/PLAN.md](docs/PLAN.md) §12).
+
+- `.github/workflows/ci.yml` — quality gate on PRs + pushes (`pnpm check`).
+- `.github/workflows/deploy.yml` — on push to `main`: gate → migrate → discover → deploy each
+  `workers/*` via `wrangler deploy` (matrix; deploys nothing until the first worker config lands).
+- **Repo secrets required:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+  `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`.
+
 ## Do not
 
 - Commit secrets. Use `wrangler secret` / `.dev.vars` (gitignored). Never hardcode
