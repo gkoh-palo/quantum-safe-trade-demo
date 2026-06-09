@@ -93,4 +93,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: ${{ matrix.dir }}
+          # Pin to v4: the action otherwise falls back to wrangler 3.90.0, which
+          # predates wrangler.jsonc support (added in 3.91.0) and so fails to read
+          # `main` from our JSONC configs → "Missing entry-point".
+          wranglerVersion: "4"
           command: deploy
