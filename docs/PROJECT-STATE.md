@@ -16,10 +16,11 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0 done; M2 (crypto) done — in review.** Scaffold merged to `main` (PR #1). The keystone
-`@qstd/crypto` registry is built and tested (PR open). Next on the critical path: **M1**
-(Drizzle schema + sentry/quantum CRUD), then **M3/M4** (wire + harvest, break + era) which the
-crypto registry now unblocks. `packages/{shared,db}` are still placeholders.
+**M0 + M2 merged; M1 done — in review.** Scaffold + crypto registry are on `main`. M1
+(`@qstd/db` schema/migrations/seed, `@qstd/shared` trade domain, sentry/quantum trade CRUD) is
+built and tested (PR open). Next on the critical path: **M3** (wire_messages + queues +
+`HarvestArchive` DO) then **M4** (`EpochClock` DO + break engine wired to era) — both now
+unblocked by the crypto registry and the schema.
 
 ## Repo & access
 
@@ -62,12 +63,17 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 1. ✅ **M0 scaffold** — workspaces + five `workers/*` with `wrangler.jsonc` (merged, PR #1).
 2. ✅ **M2 `packages/crypto`** — `SchemeRegistry` (`seal/open/break` + `sign/verify`) for every
    PLAN §5 scheme, both break modes, round-trip + PQC-resistance tests. (`forge()` → M4.)
-3. **M1 `packages/db`**: Drizzle schema (PLAN §4) + Better Auth tables + migrations + idempotent
-   seed; then `sentry` + `quantum` trade CRUD.
+3. ✅ **M1 data + trades** — `@qstd/db` schema (all §4 tables) + `0000_*` migration + idempotent
+   seed; `@qstd/shared` trade domain; `sentry`/`quantum` trade CRUD (Hono + injected repo).
+   Better Auth tables deferred to M7.
 4. **M3**: `wire_messages` + the `trade-migration`/`harvest-tap` queues + `HarvestArchive` DO —
-   now unblocked by the crypto registry.
+   now unblocked by the crypto registry and the schema.
 5. **M4**: `EpochClock` DO + the break engine wired to era state + scorecard query; add crypto
    `forge()` for the ECDSA-vs-ML-DSA signature story.
+
+**Before first deploy with a DB:** set the `NEON_DATABASE_URL` runtime secret on `sentry` +
+`quantum` (`wrangler secret put`), and confirm the `0000_*` migration applies (the deploy.yml
+migrate job runs `pnpm --filter @qstd/db migrate`). Seed once with `pnpm --filter @qstd/db seed`.
 
 **Deploy note:** the first deploy run failed because `wrangler-action` defaulted to wrangler
 3.90.0 (no `wrangler.jsonc` support). Fix pinning the action to v4 is in PR #2 — merge it so
