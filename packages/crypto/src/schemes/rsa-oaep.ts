@@ -5,7 +5,6 @@
 //   projected mode → real RSA-2048 (WebCrypto); break() is gated on the CRQC
 //                     countdown and then reveals via the server-held key, modelling
 //                     the future capability without pretending we factored 2048-bit.
-import type { webcrypto } from "node:crypto";
 import type {
   BreakContext,
   BreakResult,
@@ -65,7 +64,7 @@ async function genToyRsa(): Promise<Extract<KeyMaterial, { scheme: "rsa-oaep"; m
 async function genRealRsa(): Promise<
   Extract<KeyMaterial, { scheme: "rsa-oaep"; mode: "projected" }>
 > {
-  const pair = await crypto.subtle.generateKey(
+  const pair = (await crypto.subtle.generateKey(
     {
       name: "RSA-OAEP",
       modulusLength: 2048,
@@ -74,7 +73,7 @@ async function genRealRsa(): Promise<
     },
     true,
     ["encrypt", "decrypt"],
-  );
+  )) as CryptoKeyPair;
   return {
     scheme: "rsa-oaep",
     mode: "projected",
@@ -83,10 +82,7 @@ async function genRealRsa(): Promise<
   };
 }
 
-async function rsaDecryptToPlaintext(
-  privateKey: webcrypto.CryptoKey,
-  msg: SealedMessage,
-): Promise<string> {
+async function rsaDecryptToPlaintext(privateKey: CryptoKey, msg: SealedMessage): Promise<string> {
   const aesKey = new Uint8Array(
     await crypto.subtle.decrypt(
       { name: "RSA-OAEP" },

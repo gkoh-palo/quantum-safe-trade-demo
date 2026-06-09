@@ -16,11 +16,18 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0 + M2 merged; M1 done — in review.** Scaffold + crypto registry are on `main`. M1
-(`@qstd/db` schema/migrations/seed, `@qstd/shared` trade domain, sentry/quantum trade CRUD) is
-built and tested (PR open). Next on the critical path: **M3** (wire_messages + queues +
-`HarvestArchive` DO) then **M4** (`EpochClock` DO + break engine wired to era) — both now
-unblocked by the crypto registry and the schema.
+**M0–M2 merged; M1 merged; M3 done — in review.** Capture half of the HNDL flow is built:
+sentry/quantum seal each new trade and fan it out to the `trade-migration` + `harvest-tap`
+queues; hacker consumes `harvest-tap` into the `HarvestArchive` DO + `harvested_packets`. The
+active keyring lives serialized in `crypto_config`. Next on the critical path: **M4**
+(`EpochClock` DO + break engine wired to era state + scorecard; crypto `forge()`), then **M5**
+(integration `trade-migration` consumer: map + re-seal + forward).
+
+**Deploy prerequisites (M3):** the queues are NOT auto-created — run `wrangler queues create
+trade-migration`, `... harvest-tap`, `... harvest-tap-dlq` before deploy, else sentry/quantum/
+hacker deploys fail with "queue does not exist". The `HarvestArchive` DO is auto-created via its
+migration tag. Set `NEON_DATABASE_URL` as a runtime secret on **hacker** too (the DO writes
+`harvested_packets`). PR #5 (deploy/workspace-deps fix) must merge first.
 
 ## Repo & access
 
@@ -66,10 +73,13 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 3. ✅ **M1 data + trades** — `@qstd/db` schema (all §4 tables) + `0000_*` migration + idempotent
    seed; `@qstd/shared` trade domain; `sentry`/`quantum` trade CRUD (Hono + injected repo).
    Better Auth tables deferred to M7.
-4. **M3**: `wire_messages` + the `trade-migration`/`harvest-tap` queues + `HarvestArchive` DO —
-   now unblocked by the crypto registry and the schema.
+4. ✅ **M3 wire + harvest (capture half)** — `crypto_config` keyring + `wire_messages` /
+   `harvested_packets` repos; sentry/quantum seal + fan out to `trade-migration` + `harvest-tap`;
+   hacker consumes `harvest-tap` into the `HarvestArchive` DO. Migration `0001`.
 5. **M4**: `EpochClock` DO + the break engine wired to era state + scorecard query; add crypto
    `forge()` for the ECDSA-vs-ML-DSA signature story.
+6. **M5**: integration `trade-migration` consumer — open + map + re-seal + forward to the target
+   system (the legit migration half).
 
 **Before first deploy with a DB:** set the `NEON_DATABASE_URL` runtime secret on `sentry` +
 `quantum` (`wrangler secret put`), and confirm the `0000_*` migration applies (the deploy.yml

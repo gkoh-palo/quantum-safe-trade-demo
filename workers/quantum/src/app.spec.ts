@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryTradesRepository } from "@qstd/db";
+import type { WireEmitter } from "@qstd/db";
+import type { Trade } from "@qstd/shared";
 import { createApp } from "./app.js";
+
+class FakeWireEmitter implements WireEmitter {
+  readonly emitted: Trade[] = [];
+  async emit(trade: Trade) {
+    this.emitted.push(trade);
+    return { wireMessageId: `wm-${this.emitted.length}` };
+  }
+}
 
 const irs = {
   product: "irs",
@@ -12,8 +22,10 @@ const irs = {
 };
 
 let app: ReturnType<typeof createApp>;
+let wire: FakeWireEmitter;
 beforeEach(() => {
-  app = createApp(new InMemoryTradesRepository());
+  wire = new FakeWireEmitter();
+  app = createApp({ trades: new InMemoryTradesRepository(), wire });
 });
 
 const post = (body: unknown, headers: Record<string, string> = {}) =>
@@ -33,11 +45,13 @@ describe("qstd-quantum trades API", () => {
     expect(await res.json()).toEqual({ service: "quantum", status: "ok" });
   });
 
-  it("POST /trades creates a liability trade (201)", async () => {
+  it("POST /trades creates a liability trade (201) and emits it to the wire", async () => {
     const res = await post(irs);
     expect(res.status).toBe(201);
     const trade = await json(res);
     expect(trade).toMatchObject({ system: "quantum", assetClass: "liability", product: "irs" });
+    expect(wire.emitted).toHaveLength(1);
+    expect(wire.emitted[0]).toMatchObject({ id: trade.id, system: "quantum" });
   });
 
   it("rejects an asset product (bond) — wrong system — with 400", async () => {

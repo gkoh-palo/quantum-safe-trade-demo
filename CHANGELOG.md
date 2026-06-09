@@ -12,6 +12,20 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-09 — M3 wire + harvest (capture half).** The HNDL capture path is live in code.
+  `@qstd/crypto` gains `serializeKeyMaterial`/`deserializeKeyMaterial` (bytes/bigints → hex,
+  RSA `CryptoKey` → SPKI/PKCS8) so the active keyring persists. `@qstd/db` adds the
+  `crypto_config` repo (single active row + serialized keyring + `ensureActive` bootstrap, plus
+  a `keyring` column and migration `0001`), the `wire_messages` repo + `WireEnvelope`
+  converters, the `harvested_packets` repo, and `sealAndPersist` + `createWireEmitter`.
+  `@qstd/shared` adds the `WireEnvelope`/queue-message contract and `canonicalTradePayload`. On
+  create, **sentry** and **quantum** now seal the trade under the active scheme, write a
+  `wire_messages` row, and fan the envelope out to the `trade-migration` (legit handoff, M5
+  consumer) and `harvest-tap` (Eve's mirror) queues. **hacker** consumes `harvest-tap` into the
+  new `HarvestArchive` Durable Object (SQLite loot log) and writes a `harvested_packets` row.
+  12 new tests (serialization round-trips, envelope round-trips, emit-on-create); all five
+  workers bundle clean under wrangler v4. Break engine + era wiring is M4; integration consumer
+  is M5.
 - **2026-06-09 — M1 data + trades.** `@qstd/db`: Drizzle schema for the full PLAN §4 model
   (`trades`, `crypto_config`, `mappings`, `wire_messages`, `harvested_packets`, `audit_log`),
   the `neon-http` client (`getDb`), the first generated migration, and an idempotent seed.

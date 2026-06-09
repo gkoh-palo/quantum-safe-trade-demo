@@ -40,6 +40,10 @@ export const cryptoConfig = pgTable("crypto_config", {
   kemSecretRef: text("kem_secret_ref"),
   classicalPub: bytea("classical_pub"),
   classicalPrivSize: integer("classical_priv_size"),
+  // Serialized KeyMaterial for the active scheme (PLAN §4 stores public + a secret
+  // ref; for this single-env demo we keep the whole keyring here — Eve taps the
+  // wire, never the DB). See @qstd/crypto SerializedKeyMaterial.
+  keyring: jsonb("keyring"),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -83,6 +87,7 @@ export const wireMessages = pgTable("wire_messages", {
   ciphertext: bytea("ciphertext").notNull(),
   nonce: bytea("nonce"),
   encapsulatedKey: bytea("encapsulated_key"),
+  mac: bytea("mac"), // hmac-sha256 scheme only
   signature: bytea("signature"),
   sigScheme: text("sig_scheme"),
   plaintextSha256: bytea("plaintext_sha256").notNull(),

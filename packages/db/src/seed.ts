@@ -4,6 +4,7 @@
 import { productToAssetClass, systemForProduct } from "@qstd/shared";
 import type { Product, TradeInput, TradeStatus } from "@qstd/shared";
 import { getDb } from "./client.js";
+import { cryptoConfigRepo } from "./crypto-config.js";
 import { drizzleTradesRepository } from "./repo.js";
 
 interface SeedRow {
@@ -83,7 +84,12 @@ const SEED: SeedRow[] = [
 async function main(): Promise<void> {
   const url = process.env.NEON_DATABASE_URL;
   if (!url) throw new Error("NEON_DATABASE_URL is required to seed");
-  const repo = drizzleTradesRepository(getDb(url));
+  const db = getDb(url);
+  const repo = drizzleTradesRepository(db);
+
+  // Bootstrap the active crypto posture (idempotent: only creates if none active).
+  const cfg = await cryptoConfigRepo(db).ensureActive();
+  console.warn(`seed: active scheme = ${cfg.scheme} (${cfg.breakMode}, era ${cfg.era})`);
 
   let created = 0;
   for (const [i, row] of SEED.entries()) {

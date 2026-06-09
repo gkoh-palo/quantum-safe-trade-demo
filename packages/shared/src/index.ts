@@ -5,3 +5,4 @@ export const PACKAGE_NAME = "@qstd/shared" as const;
 
 export * from "./trades.js";
 export * from "./http.js";
+export * from "./wire.js";

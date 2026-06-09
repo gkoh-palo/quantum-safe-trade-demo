@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryTradesRepository } from "@qstd/db";
+import type { WireEmitter } from "@qstd/db";
+import type { Trade } from "@qstd/shared";
 import { createApp } from "./app.js";
+
+class FakeWireEmitter implements WireEmitter {
+  readonly emitted: Trade[] = [];
+  async emit(trade: Trade) {
+    this.emitted.push(trade);
+    return { wireMessageId: `wm-${this.emitted.length}` };
+  }
+}
 
 const bond = {
   product: "bond",
@@ -12,8 +22,10 @@ const bond = {
 };
 
 let app: ReturnType<typeof createApp>;
+let wire: FakeWireEmitter;
 beforeEach(() => {
-  app = createApp(new InMemoryTradesRepository());
+  wire = new FakeWireEmitter();
+  app = createApp({ trades: new InMemoryTradesRepository(), wire });
 });
 
 const post = (body: unknown, headers: Record<string, string> = {}) =>
@@ -60,12 +72,20 @@ describe("qstd-sentry trades API", () => {
     expect(res.status).toBe(400);
   });
 
-  it("is idempotent on Idempotency-Key (replay returns 200, same id)", async () => {
+  it("is idempotent on Idempotency-Key (replay returns 200, same id, no re-emit)", async () => {
     const first = await post(bond, { "Idempotency-Key": "abc-123" });
     expect(first.status).toBe(201);
     const second = await post(bond, { "Idempotency-Key": "abc-123" });
     expect(second.status).toBe(200);
     expect((await json(second)).id).toBe((await json(first)).id);
+    expect(wire.emitted).toHaveLength(1); // replay must not re-emit to the queues
+  });
+
+  it("emits the created trade to the wire (seal + queue fan-out)", async () => {
+    const res = await post(bond);
+    const trade = await json(res);
+    expect(wire.emitted).toHaveLength(1);
+    expect(wire.emitted[0]).toMatchObject({ id: trade.id, system: "sentry", product: "bond" });
   });
 
   it("GET /trades returns the collection shape", async () => {

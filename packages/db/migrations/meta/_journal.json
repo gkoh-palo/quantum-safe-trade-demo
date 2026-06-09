@@ -8,6 +8,13 @@
       "when": 1780996718079,
       "tag": "0000_bright_umar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780998311212,
+      "tag": "0001_striped_hobgoblin",
+      "breakpoints": true
     }
   ]
 }

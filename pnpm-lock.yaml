@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260609.1
+        version: 4.20260609.1
       '@eslint/js':
         specifier: ^9.12.0
         version: 9.39.4
@@ -40,7 +43,7 @@ importers:
         version: 2.1.9(@types/node@22.19.20)
       wrangler:
         specifier: ^4
-        version: 4.98.0
+        version: 4.98.0(@cloudflare/workers-types@4.20260609.1)
 
   packages/crypto:
     dependencies:
@@ -62,12 +65,15 @@ importers:
       '@neondatabase/serverless':
         specifier: ^1.1.0
         version: 1.1.0
+      '@qstd/crypto':
+        specifier: workspace:^
+        version: link:../crypto
       '@qstd/shared':
         specifier: workspace:^
         version: link:../shared
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@neondatabase/serverless@1.1.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260609.1)(@neondatabase/serverless@1.1.0)
     devDependencies:
       drizzle-kit:
         specifier: ^0.31.10
@@ -78,11 +84,21 @@ importers:
 
   packages/shared:
     dependencies:
+      '@qstd/crypto':
+        specifier: workspace:^
+        version: link:../crypto
       zod:
         specifier: ^4.4.3
         version: 4.4.3
 
-  workers/hacker: {}
+  workers/hacker:
+    dependencies:
+      '@qstd/db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@qstd/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
 
   workers/integration: {}
 
@@ -180,6 +196,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@4.20260609.1':
+    resolution: {integrity: sha512-krGHtwSApCFBjTe1NTx/TFQ0P5i/bHGQOqCPnCLssb8rOKaAG4JkPFJZsossr0z/ZTMnpP2Tid5jWju+/i0hCA==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -2330,6 +2349,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260603.1':
     optional: true
 
+  '@cloudflare/workers-types@4.20260609.1': {}
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -3275,8 +3296,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.22.4
 
-  drizzle-orm@0.45.2(@neondatabase/serverless@1.1.0):
+  drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260609.1)(@neondatabase/serverless@1.1.0):
     optionalDependencies:
+      '@cloudflare/workers-types': 4.20260609.1
       '@neondatabase/serverless': 1.1.0
 
   eastasianwidth@0.2.0: {}
@@ -4012,7 +4034,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260603.1
       '@cloudflare/workerd-windows-64': 1.20260603.1
 
-  wrangler@4.98.0:
+  wrangler@4.98.0(@cloudflare/workers-types@4.20260609.1):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260603.1)
@@ -4023,6 +4045,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260603.1
     optionalDependencies:
+      '@cloudflare/workers-types': 4.20260609.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil
