@@ -1,0 +1,12 @@
+{
+  "name": "@qstd/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "migrate": "echo \"@qstd/db: no migrations yet (M0); drizzle-kit wiring lands in M1\""
+  }
+}

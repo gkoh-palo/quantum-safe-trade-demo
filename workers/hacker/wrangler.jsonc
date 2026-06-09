@@ -1,0 +1,11 @@
+{
+  // qstd-hacker — Eve's passive wiretap: harvest tap + break engine. Hosts the
+  // HarvestArchive Durable Object (loot log + break orchestration). See PLAN §2/§3.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qstd-hacker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+}
