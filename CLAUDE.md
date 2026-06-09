@@ -43,6 +43,12 @@ Individual steps:
 `pnpm check` to confirm the gate is green. Or just run the **`/check`** skill, which does
 this and reports/fixes failures.
 
+## Delivery workflow
+
+- **Every feature ships as a PR for review** — never commit features straight to `main`.
+  Branch off `main`, implement, run the quality gate, push, and open a PR for the user to
+  review. Do not merge on the user's behalf unless explicitly asked.
+
 ## Conventions
 
 - **Imports:** `consistent-type-imports` is enforced — use `import type { Foo }` for types.
