@@ -1,20 +1,17 @@
-// qstd-quantum — vendor system for **liability** trades (FX, IRS, CCS). Receives migrated
-// trades from the integration layer. Trade CRUD + wire-message handling arrive in M1/M3;
-// this placeholder gives the worker a deployable shape with a health probe.
+// qstd-quantum — vendor system for **liability** trades (FX, IRS, CCS). Receives
+// migrated trades from the integration layer. Trade CRUD via the Hono app in
+// ./app.ts, backed by the Drizzle trades repository over Neon. Wire handling: M3.
+import { drizzleTradesRepository, getDb } from "@qstd/db";
+import { createApp } from "./app.js";
 
 interface Env {
+  readonly NEON_DATABASE_URL: string;
   // Service bindings, queues and vars are added in later milestones.
-  readonly ENVIRONMENT?: string;
 }
 
 export default {
-  async fetch(request: Request, _env: Env): Promise<Response> {
-    const { pathname } = new URL(request.url);
-    if (pathname === "/health") {
-      return new Response(JSON.stringify({ service: "quantum", status: "ok" }), {
-        headers: { "content-type": "application/json" },
-      });
-    }
-    return new Response("Not Found", { status: 404 });
+  fetch(request: Request, env: Env): Response | Promise<Response> {
+    const repo = drizzleTradesRepository(getDb(env.NEON_DATABASE_URL));
+    return createApp(repo).fetch(request);
   },
 };

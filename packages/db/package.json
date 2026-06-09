@@ -7,6 +7,17 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "migrate": "echo \"@qstd/db: no migrations yet (M0); drizzle-kit wiring lands in M1\""
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "seed": "tsx src/seed.ts"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.22.4"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@qstd/shared": "workspace:^",
+    "drizzle-orm": "^0.45.2"
   }
 }

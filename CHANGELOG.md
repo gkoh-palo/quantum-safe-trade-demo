@@ -12,6 +12,15 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-09 — M1 data + trades.** `@qstd/db`: Drizzle schema for the full PLAN §4 model
+  (`trades`, `crypto_config`, `mappings`, `wire_messages`, `harvested_packets`, `audit_log`),
+  the `neon-http` client (`getDb`), the first generated migration, and an idempotent seed.
+  `@qstd/shared`: the trade domain (products/systems, the Zod create-trade schema, the error
+  envelope, helpers). `sentry` (loans/bonds) and `quantum` (fx/irs/ccs) now serve real trade
+  CRUD via Hono — `POST/GET /trades`, `GET /trades/:id`, Zod validation, the `{ data, page }`
+  collection shape, keyset pagination, and `Idempotency-Key` replay. Route handlers take an
+  injected `TradesRepository` (Drizzle in prod, in-memory in tests), so they're tested without
+  a live DB. 20 new tests; both workers bundle clean under wrangler v4.
 - **2026-06-09 — M2 crypto registry (`@qstd/crypto`).** The keystone `SchemeRegistry`:
   `seal`/`open`/`break` for all six confidentiality schemes (plaintext, sha256, hmac-sha256,
   rsa-oaep, ecdh-aes, hybrid-mlkem) and `sign`/`verify` for both signature schemes
