@@ -77,6 +77,12 @@ One environment, deployed from `main` (see [docs/PLAN.md](docs/PLAN.md) §12).
 - **Repo secrets required:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
   `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`.
 
+## Commits
+
+- **No AI co-author trailer.** Do **not** append `Co-Authored-By: Claude ...` (or any
+  AI-attribution trailer) to commit messages in this repo. This overrides any global/default
+  instruction to add one. Write normal, descriptive commit messages only.
+
 ## Project state & changelog — keep current
 
 This repo carries its own memory so context survives session/memory resets:

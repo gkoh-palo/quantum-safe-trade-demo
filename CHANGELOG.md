@@ -31,7 +31,8 @@ everything currently lives under **[Unreleased]**.
 
 ### Changed
 
-- _nothing yet_
+- **2026-06-09 — Commit convention.** Stop appending the `Co-Authored-By: Claude` trailer to
+  commits (recorded in CLAUDE.md → Commits).
 
 ### Fixed
 
