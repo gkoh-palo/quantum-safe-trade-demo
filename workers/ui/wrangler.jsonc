@@ -1,0 +1,12 @@
+{
+  // qstd-ui — BFF + admin control plane; serves the React app (workers/ui/web) as static
+  // assets and hosts the EpochClock Durable Object. The assets binding and EpochClock DO
+  // are wired in M6/M7 once the Vite build exists. See PLAN §3/§7.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qstd-ui",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+}

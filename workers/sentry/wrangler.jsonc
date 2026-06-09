@@ -1,0 +1,10 @@
+{
+  // qstd-sentry — asset-trade API (loans, bonds). See PLAN §3 resource map.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qstd-sentry",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+}
