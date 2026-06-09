@@ -19,7 +19,7 @@ post-quantum defence. See [docs/PLAN.md](docs/PLAN.md) for the architecture.
 
 ## Package manager
 
-Use **pnpm** (`packageManager` is pinned). Do not use npm/yarn. Node ≥ 20 (`.nvmrc`).
+Use **pnpm** (`packageManager` is pinned). Do not use npm/yarn. Node ≥ 22 (`.nvmrc`; wrangler 4 requires it).
 
 ## The quality gate — run before every commit
 
