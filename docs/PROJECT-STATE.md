@@ -16,8 +16,10 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**Foundation complete; application code not started.** We have plan + tooling + CI/CD + repo.
-Next is the M0–M1 scaffold (first real code).
+**M0 done; M2 (crypto) done — in review.** Scaffold merged to `main` (PR #1). The keystone
+`@qstd/crypto` registry is built and tested (PR open). Next on the critical path: **M1**
+(Drizzle schema + sentry/quantum CRUD), then **M3/M4** (wire + harvest, break + era) which the
+crypto registry now unblocks. `packages/{shared,db}` are still placeholders.
 
 ## Repo & access
 
@@ -55,14 +57,21 @@ Next is the M0–M1 scaffold (first real code).
 `pnpm check` = `format:check + lint + typecheck + test`. Currently green (no app code yet;
 Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the same on PRs.
 
-## Next steps (M0–M1)
+## Next steps (M1 onward)
 
-1. Scaffold workspaces: `packages/{shared,crypto,db}` + five `workers/*` with `wrangler.jsonc`.
-2. `packages/crypto` first (it gates everything): the `SchemeRegistry` with `seal/open/sign/
-verify/break` for every scheme in PLAN §5, with round-trip + PQC-resistance tests.
-3. `packages/db`: Drizzle schema (PLAN §4) + Better Auth tables + migrations + idempotent seed.
-4. `sentry` + `quantum` trade CRUD; wire `wire_messages` + the `harvest-tap` queue.
-5. Once a worker `wrangler.jsonc` exists, `deploy.yml` starts deploying — verify on Cloudflare.
+1. ✅ **M0 scaffold** — workspaces + five `workers/*` with `wrangler.jsonc` (merged, PR #1).
+2. ✅ **M2 `packages/crypto`** — `SchemeRegistry` (`seal/open/break` + `sign/verify`) for every
+   PLAN §5 scheme, both break modes, round-trip + PQC-resistance tests. (`forge()` → M4.)
+3. **M1 `packages/db`**: Drizzle schema (PLAN §4) + Better Auth tables + migrations + idempotent
+   seed; then `sentry` + `quantum` trade CRUD.
+4. **M3**: `wire_messages` + the `trade-migration`/`harvest-tap` queues + `HarvestArchive` DO —
+   now unblocked by the crypto registry.
+5. **M4**: `EpochClock` DO + the break engine wired to era state + scorecard query; add crypto
+   `forge()` for the ECDSA-vs-ML-DSA signature story.
+
+**Deploy note:** the first deploy run failed because `wrangler-action` defaulted to wrangler
+3.90.0 (no `wrangler.jsonc` support). Fix pinning the action to v4 is in PR #2 — merge it so
+`main` deploys green.
 
 When code lands, CI deploy activates automatically (secrets are in place).
 

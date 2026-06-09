@@ -12,6 +12,16 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-09 — M2 crypto registry (`@qstd/crypto`).** The keystone `SchemeRegistry`:
+  `seal`/`open`/`break` for all six confidentiality schemes (plaintext, sha256, hmac-sha256,
+  rsa-oaep, ecdh-aes, hybrid-mlkem) and `sign`/`verify` for both signature schemes
+  (ecdsa-p256, ml-dsa-65). Real crypto throughout — AES-256-GCM bulk, HKDF, ML-KEM-768 +
+  X25519 hybrid, ML-DSA-65 (`@noble/post-quantum` + `@noble/curves` + `@noble/ciphers`).
+  Both break modes (PLAN §5): **genuine** factors a toy RSA modulus / solves a toy discrete
+  log live (Pollard's rho, baby-step giant-step); **projected** gates on CRQC progress then
+  reveals real RSA-2048 / P-256 via the held key. **Hybrid ML-KEM never breaks, in any mode.**
+  24 tests: seal→open round-trips per scheme/mode, signature verify+tamper, the toy number
+  theory, and the headline gate (classical recoverable, PQC not). `forge()` deferred to M4.
 - **2026-06-09 — Project state tracking.** `CHANGELOG.md` + `docs/PROJECT-STATE.md` so context
   survives memory clears; CLAUDE.md convention to keep both current.
 - **2026-06-09 — GitHub repo + CI/CD.** Created private repo `gkoh-palo/quantum-safe-trade-demo`,
