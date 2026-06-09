@@ -93,8 +93,10 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: ${{ matrix.dir }}
-          # Pin to v4: the action otherwise falls back to wrangler 3.90.0, which
-          # predates wrangler.jsonc support (added in 3.91.0) and so fails to read
-          # `main` from our JSONC configs → "Missing entry-point".
-          wranglerVersion: "4"
+          # wrangler v4 is a root devDependency installed by the step above, so the
+          # action detects it and skips its own install. We must NOT let it run
+          # `npm i wrangler` inside a worker dir: npm can't parse the `workspace:^`
+          # deps (e.g. @qstd/db) and dies with EUNSUPPORTEDPROTOCOL. packageManager
+          # pnpm is the belt-and-suspenders for any fallback install.
+          packageManager: pnpm
           command: deploy
