@@ -13,7 +13,7 @@ Two vendor systems exchange trades through an integration layer:
 - **Integration Layer** — maps & migrates trades **Sentry ↔ Quantum**
 
 A passive attacker, **Eve**, taps the wire between the services. She cannot break the
-encryption *today*, so she just **records every encrypted payload** into her own loot
+encryption _today_, so she just **records every encrypted payload** into her own loot
 database. Years later, when a cryptographically-relevant quantum computer (CRQC) exists,
 she replays the archive and **decrypts it retroactively** — exposing notionals,
 counterparties and rates that were supposed to stay confidential for a decade.

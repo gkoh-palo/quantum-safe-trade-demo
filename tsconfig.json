@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["packages/**/*.ts", "workers/**/*.ts", "*.config.ts", "*.config.mjs"],
+  "exclude": ["node_modules", "**/dist", "**/.wrangler", "workers/ui/web"]
+}

@@ -7,20 +7,21 @@
 
 ## 1. Actors & narrative
 
-| Actor | Role | Asset classes | Notes |
-|---|---|---|---|
-| **Sentry** | Vendor system, **asset** trades | Loans, Bonds | Source/target of migration |
-| **Quantum** | Vendor system, **liability** trades | FX, IRS, CCS | Source/target of migration |
-| **Integration Layer** | Maps & migrates trades both directions | — | Re-shapes + re-encrypts payloads; the richest interception point |
-| **Eve (Hacker)** | Passive wiretap — *harvest now, decrypt later* | — | Mirrors every wire message to a loot store; breaks it once the "quantum era" arrives |
+| Actor                 | Role                                           | Asset classes | Notes                                                                                |
+| --------------------- | ---------------------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| **Sentry**            | Vendor system, **asset** trades                | Loans, Bonds  | Source/target of migration                                                           |
+| **Quantum**           | Vendor system, **liability** trades            | FX, IRS, CCS  | Source/target of migration                                                           |
+| **Integration Layer** | Maps & migrates trades both directions         | —             | Re-shapes + re-encrypts payloads; the richest interception point                     |
+| **Eve (Hacker)**      | Passive wiretap — _harvest now, decrypt later_ | —             | Mirrors every wire message to a loot store; breaks it once the "quantum era" arrives |
 
 **Plot beats the presenter controls:**
+
 1. Trades flow Sentry ↔ Quantum (auto-generated + manual).
 2. Every inter-service message is encrypted under the **current scheme** and mirrored to Eve's archive.
 3. Today (classical era) Eve can't read protected traffic — she just stores it.
 4. Presenter flips **"Advance to the Quantum Era."**
 5. Eve runs her break engine over the archive:
-   - plaintext / hash-only → readable (teaches *hashing ≠ encryption*)
+   - plaintext / hash-only → readable (teaches _hashing ≠ encryption_)
    - classical RSA / ECDH → **broken** (Shor) → trade economics exposed
    - **hybrid X25519 + ML-KEM** → break **fails** → traffic stays opaque
 6. Dashboards quantify the damage: % harvested, % broken, $ notional exposed, counterparties leaked.
@@ -28,7 +29,7 @@
 > **Naming note:** in the real cc-integrations codebase "Sentry→Quantum" is the asset
 > integration flow. Here both are treated as independent vendor systems (Sentry=assets,
 > Quantum=liabilities) so the migration is genuinely bidirectional. The pun — that the
-> *Quantum* system is undone by *quantum* computing — is intentional and good pitch theatre.
+> _Quantum_ system is undone by _quantum_ computing — is intentional and good pitch theatre.
 
 ---
 
@@ -65,7 +66,7 @@
 `hacker` and `ui` are infrastructure for the demo, not part of the simulated business flow.
 
 **Modelling the wiretap honestly.** Cloudflare Service Bindings can't be truly
-man-in-the-middled, so each sender *also* mirrors the exact ciphertext bytes to the
+man-in-the-middled, so each sender _also_ mirrors the exact ciphertext bytes to the
 hacker tap. This faithfully models a **passive network sniffer** (which is the real HNDL
 threat model) — Eve never sees plaintext or private keys at capture time, only what
 travels on the wire.
@@ -74,20 +75,20 @@ travels on the wire.
 
 ## 3. Cloudflare resource map
 
-| Resource | Name | Purpose |
-|---|---|---|
-| Worker | `sentry` | Asset-trade REST API; encrypts + emits wire messages |
-| Worker | `quantum` | Liability-trade REST API; receives migrated trades |
-| Worker | `integration` | Queue consumer; maps + re-encrypts + forwards |
-| Worker | `hacker` | Harvest tap + break engine |
-| Worker | `ui` | Static React assets + BFF/admin endpoints |
-| Queue | `trade-migration` | Async Sentry⇄Quantum handoff (producer: sentry/quantum, consumer: integration) |
-| Queue | `harvest-tap` | Fan-out of ciphertext to the hacker (decouples capture from break) |
-| Durable Object | `EpochClock` | Single global era state (classical/quantum) + CRQC progress % |
-| Durable Object | `HarvestArchive` | Append-only loot log, break orchestration, per-key cache |
-| Cron | `*/1 * * * *` | `trade-generator` — emits random trades to keep the feed live |
-| Cron | `*/2 * * * *` | `epoch-tick` — advances CRQC progress when in auto mode |
-| Hyperdrive (opt.) | `neon` | Pooled Postgres access from Workers |
+| Resource          | Name              | Purpose                                                                        |
+| ----------------- | ----------------- | ------------------------------------------------------------------------------ |
+| Worker            | `sentry`          | Asset-trade REST API; encrypts + emits wire messages                           |
+| Worker            | `quantum`         | Liability-trade REST API; receives migrated trades                             |
+| Worker            | `integration`     | Queue consumer; maps + re-encrypts + forwards                                  |
+| Worker            | `hacker`          | Harvest tap + break engine                                                     |
+| Worker            | `ui`              | Static React assets + BFF/admin endpoints                                      |
+| Queue             | `trade-migration` | Async Sentry⇄Quantum handoff (producer: sentry/quantum, consumer: integration) |
+| Queue             | `harvest-tap`     | Fan-out of ciphertext to the hacker (decouples capture from break)             |
+| Durable Object    | `EpochClock`      | Single global era state (classical/quantum) + CRQC progress %                  |
+| Durable Object    | `HarvestArchive`  | Append-only loot log, break orchestration, per-key cache                       |
+| Cron              | `*/1 * * * *`     | `trade-generator` — emits random trades to keep the feed live                  |
+| Cron              | `*/2 * * * *`     | `epoch-tick` — advances CRQC progress when in auto mode                        |
+| Hyperdrive (opt.) | `neon`            | Pooled Postgres access from Workers                                            |
 
 Secrets via `wrangler secret`: `NEON_DATABASE_URL`, `ADMIN_TOKEN`, per-service `SIGNING_SEED`.
 
@@ -151,25 +152,25 @@ Neon driver: `@neondatabase/serverless` + `drizzle-orm/neon-http`. Migrations wi
 ## 5. Configurable security methods (the core knob)
 
 Admin selects the **active scheme**; it governs how `integration`/`sentry`/`quantum`
-protect each wire message. Each scheme has a defined *break outcome* in the quantum era.
+protect each wire message. Each scheme has a defined _break outcome_ in the quantum era.
 
-| Scheme key | Construction | Confidentiality | Quantum-safe? | Quantum-era outcome |
-|---|---|---|---|---|
-| `plaintext` | none | ❌ none | n/a | readable immediately (baseline shock) |
-| `sha256` | hash of payload only | ❌ none (integrity) | n/a | teaches **hash ≠ encryption** — still readable |
-| `hmac-sha256` | keyed MAC, no encryption | ❌ none (auth) | symmetric-ok | still readable; shows auth ≠ confidentiality |
-| `rsa-oaep` | RSA-OAEP wrap + AES-GCM | ✅ | ❌ **no** | **broken** by Shor → plaintext recovered |
-| `ecdh-aes` | ECDH(P-256) → HKDF → AES-GCM | ✅ | ❌ **no** | **broken** by Shor (DLP) → recovered |
-| `hybrid-mlkem` | X25519 **+ ML-KEM-768** → HKDF → AES-GCM | ✅ | ✅ **yes** | **break fails** — stays opaque |
-| signatures | `ecdsa-p256` vs **`ml-dsa-65`** | integrity/auth | classical forgeable | quantum era can **forge** ECDSA, not ML-DSA |
+| Scheme key     | Construction                             | Confidentiality     | Quantum-safe?       | Quantum-era outcome                            |
+| -------------- | ---------------------------------------- | ------------------- | ------------------- | ---------------------------------------------- |
+| `plaintext`    | none                                     | ❌ none             | n/a                 | readable immediately (baseline shock)          |
+| `sha256`       | hash of payload only                     | ❌ none (integrity) | n/a                 | teaches **hash ≠ encryption** — still readable |
+| `hmac-sha256`  | keyed MAC, no encryption                 | ❌ none (auth)      | symmetric-ok        | still readable; shows auth ≠ confidentiality   |
+| `rsa-oaep`     | RSA-OAEP wrap + AES-GCM                  | ✅                  | ❌ **no**           | **broken** by Shor → plaintext recovered       |
+| `ecdh-aes`     | ECDH(P-256) → HKDF → AES-GCM             | ✅                  | ❌ **no**           | **broken** by Shor (DLP) → recovered           |
+| `hybrid-mlkem` | X25519 **+ ML-KEM-768** → HKDF → AES-GCM | ✅                  | ✅ **yes**          | **break fails** — stays opaque                 |
+| signatures     | `ecdsa-p256` vs **`ml-dsa-65`**          | integrity/auth      | classical forgeable | quantum era can **forge** ECDSA, not ML-DSA    |
 
 **Honesty about "the break."** RSA-2048 / P-256 cannot be factored on a laptop. Two modes,
 both presenter-selectable, both labelled in the UI so the demo never lies:
 
-- **`genuine` mode** — classical path uses a deliberately *small* key (e.g. RSA-512 or a
+- **`genuine` mode** — classical path uses a deliberately _small_ key (e.g. RSA-512 or a
   toy curve) so Eve's break **actually runs live** in seconds via `sympy`-style factoring /
-  Pollard-rho (ported to JS/WASM). Caption: *"We shrank the key so it breaks in seconds; a
-  CRQC does this to 2048-bit in hours."*
+  Pollard-rho (ported to JS/WASM). Caption: _"We shrank the key so it breaks in seconds; a
+  CRQC does this to 2048-bit in hours."_
 - **`projected` mode** — classical path uses real RSA-2048/P-256; the break is **gated on
   `crqc_progress` reaching 100%** (a simulated countdown) and then reveals plaintext from a
   server-held key, representing the future capability. PQC path **never** reveals, in either
@@ -211,16 +212,18 @@ hacker agree on `seal/open/sign/verify/break` for each scheme key in §5.
 ## 7. Front-end: two views
 
 ### Pitch view (`/pitch`) — cinematic, presenter-facing
+
 - **Live wire** — animated packets flowing Sentry ⇄ Integration ⇄ Quantum; Eve's tap
   pulling a copy aside into a growing "loot pile."
-- **HNDL timeline** — the signature visual: a capture marker at *today* connected by a
-  long line to a break marker in the *quantum era*; the gap is labelled
-  *"years of confidentiality that were never actually there."*
+- **HNDL timeline** — the signature visual: a capture marker at _today_ connected by a
+  long line to a break marker in the _quantum era_; the gap is labelled
+  _"years of confidentiality that were never actually there."_
 - **The big switch** — "Advance to the Quantum Era" lever; on pull, harvested packets
   flip from 🔒→🔓 (or stay 🔒 for PQC) with a counter of exposed notional / counterparties.
 - **Scorecard** — harvested vs broken vs protected, by scheme.
 
 ### Admin view (`/admin`) — control plane (token-gated)
+
 - Select **active scheme** (§5) and **break mode** (`genuine`/`projected`).
 - Set **CRQC progress** manually or toggle auto-tick (cron).
 - **Inject trade** (pick system/product/notional/counterparty) to control the narrative.
@@ -251,18 +254,18 @@ SSE/poll for the live feed. Recharts for the scorecard, framer-motion for packet
 
 ## 9. Milestones
 
-| # | Milestone | Deliverable |
-|---|---|---|
-| M0 | Scaffolding | workspaces, turbo, 5 `wrangler.toml`, CI, Neon project created |
-| M1 | Data + trades | drizzle schema + migrations + seed; sentry & quantum CRUD |
-| M2 | Crypto registry | `packages/crypto` with all §5 schemes: seal/open/sign/verify + tests |
-| M3 | Wire + harvest | wire_messages, Queues, harvest-tap, HarvestArchive DO |
-| M4 | Break + era | EpochClock DO, break engine (genuine + projected), scorecard query |
-| M5 | Integration mapper | Sentry⇄Quantum mapping rules, bidirectional migration via queue |
-| M6 | Pitch UI | live wire, HNDL timeline, the switch, scorecard |
-| M7 | Admin UI | scheme/break-mode/CRQC controls, trade injector, inspector |
-| M8 | Deploy + crons | service bindings, secrets, cron feeds, end-to-end on Cloudflare |
-| M9 | Polish | demo script rehearsal, reset button, copy/captions, fallbacks |
+| #   | Milestone          | Deliverable                                                          |
+| --- | ------------------ | -------------------------------------------------------------------- |
+| M0  | Scaffolding        | workspaces, turbo, 5 `wrangler.toml`, CI, Neon project created       |
+| M1  | Data + trades      | drizzle schema + migrations + seed; sentry & quantum CRUD            |
+| M2  | Crypto registry    | `packages/crypto` with all §5 schemes: seal/open/sign/verify + tests |
+| M3  | Wire + harvest     | wire_messages, Queues, harvest-tap, HarvestArchive DO                |
+| M4  | Break + era        | EpochClock DO, break engine (genuine + projected), scorecard query   |
+| M5  | Integration mapper | Sentry⇄Quantum mapping rules, bidirectional migration via queue      |
+| M6  | Pitch UI           | live wire, HNDL timeline, the switch, scorecard                      |
+| M7  | Admin UI           | scheme/break-mode/CRQC controls, trade injector, inspector           |
+| M8  | Deploy + crons     | service bindings, secrets, cron feeds, end-to-end on Cloudflare      |
+| M9  | Polish             | demo script rehearsal, reset button, copy/captions, fallbacks        |
 
 **Critical path:** M2 (crypto) gates M3/M4; M3+M4 gate the pitch payoff (M6). Build M2 first
 and hardest — everything credible flows from it.
@@ -271,15 +274,15 @@ and hardest — everything credible flows from it.
 
 ## 10. Key risks & mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Real PQC break impossible to show live | Two explicit modes (§5); never claim to break PQC |
-| Factoring RSA-2048 live is infeasible | `genuine` mode uses small keys; caption the shrink honestly |
-| Workers can't truly MITM bindings | Model passive sniffer via ciphertext mirror — the correct HNDL model anyway |
-| `@noble/post-quantum` bundle size / CPU on Workers | Pre-warm keys; cache KEM keypair in DO; ML-KEM-768 is fast (<5ms) |
-| Neon cold starts in Workers | `@neondatabase/serverless` HTTP driver or Hyperdrive pooling |
-| Demo state drift between runs | One-click **reset** + idempotent seed |
-| Live-demo network failure | `projected` mode runs fully server-side; record a fallback video |
+| Risk                                               | Mitigation                                                                  |
+| -------------------------------------------------- | --------------------------------------------------------------------------- |
+| Real PQC break impossible to show live             | Two explicit modes (§5); never claim to break PQC                           |
+| Factoring RSA-2048 live is infeasible              | `genuine` mode uses small keys; caption the shrink honestly                 |
+| Workers can't truly MITM bindings                  | Model passive sniffer via ciphertext mirror — the correct HNDL model anyway |
+| `@noble/post-quantum` bundle size / CPU on Workers | Pre-warm keys; cache KEM keypair in DO; ML-KEM-768 is fast (<5ms)           |
+| Neon cold starts in Workers                        | `@neondatabase/serverless` HTTP driver or Hyperdrive pooling                |
+| Demo state drift between runs                      | One-click **reset** + idempotent seed                                       |
+| Live-demo network failure                          | `projected` mode runs fully server-side; record a fallback video            |
 
 ---
 

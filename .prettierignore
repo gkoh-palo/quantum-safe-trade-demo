@@ -1,0 +1,7 @@
+node_modules
+dist
+.wrangler
+.turbo
+coverage
+pnpm-lock.yaml
+**/worker-configuration.d.ts
