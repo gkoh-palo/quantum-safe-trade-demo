@@ -141,3 +141,34 @@ export function clampLimit(raw: string | undefined | null): number {
   if (!Number.isFinite(n) || n <= 0) return DEFAULT_PAGE_LIMIT;
   return Math.min(Math.floor(n), MAX_PAGE_LIMIT);
 }
+
+// --- demo trade generation (trade-generator cron) --------------------------
+
+const DEMO_COUNTERPARTIES = [
+  "Helios Capital",
+  "Northwind Treasury",
+  "Sumitomo Mitsui",
+  "Meridian FX",
+  "Atlas Derivatives",
+  "Pacific Rim Bank",
+  "Blackwater Funds",
+  "Equinox Partners",
+] as const;
+const DEMO_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
+const DEMO_TENORS = ["3M", "1Y", "5Y", "7Y", "10Y"] as const;
+
+const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)]!;
+
+/** A random, plausible create-trade body for the given system (cron feed). */
+export function randomTradeBody(system: System): CreateTradeBody {
+  const products = system === "sentry" ? SENTRY_PRODUCTS : QUANTUM_PRODUCTS;
+  return {
+    product: pick(products),
+    counterparty: pick(DEMO_COUNTERPARTIES),
+    notional: (Math.floor(Math.random() * 96) + 5) * 1_000_000, // $5m–$100m
+    currency: pick(DEMO_CURRENCIES),
+    rate: Math.round((Math.random() * 6 + 0.5) * 100) / 100,
+    tenor: pick(DEMO_TENORS),
+    status: "active",
+  };
+}

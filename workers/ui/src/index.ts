@@ -2,7 +2,12 @@
 // and owns /api/*: aggregate state for the pitch view, the era controls (EpochClock
 // DO), and Eve's break trigger. Better Auth gating of the mutating routes is M7 —
 // they are open here.
-import type { DurableObjectNamespace, Fetcher } from "@cloudflare/workers-types";
+import type {
+  DurableObjectNamespace,
+  ExecutionContext,
+  Fetcher,
+  ScheduledController,
+} from "@cloudflare/workers-types";
 import {
   cryptoConfigRepo,
   getDashboardState,
@@ -10,6 +15,7 @@ import {
   harvestedPacketsRepo,
   runBreakBatch,
 } from "@qstd/db";
+import { randomTradeBody, type System } from "@qstd/shared";
 import { handleAdmin } from "./admin.js";
 import { EpochClock } from "./epoch-clock.js";
 
@@ -25,6 +31,22 @@ interface Env {
 }
 
 const epoch = (env: Env) => env.EPOCH.get(env.EPOCH.idFromName("global"));
+
+const GENERATE_CRON = "*/1 * * * *"; // trade-generator
+const TICK_CRON = "*/2 * * * *"; // epoch-tick
+
+// Generate one random trade through the originating worker's seal + emit path.
+async function generateTrade(env: Env): Promise<void> {
+  const system: System = Math.random() < 0.5 ? "sentry" : "quantum";
+  const target = system === "sentry" ? env.SENTRY : env.QUANTUM;
+  await target.fetch(
+    new Request("https://svc/trades", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(randomTradeBody(system)),
+    }),
+  );
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -91,5 +113,17 @@ export default {
 
     // Everything else → the React SPA (the assets binding handles SPA fallback).
     return env.ASSETS.fetch(request);
+  },
+
+  // Cron feeds (PLAN §3) — only fire when their auto-mode is on.
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const cfg = await cryptoConfigRepo(getDb(env.NEON_DATABASE_URL)).getActive();
+    if (!cfg) return;
+    if (event.cron === GENERATE_CRON && cfg.autoGenerate) {
+      ctx.waitUntil(generateTrade(env));
+    }
+    if (event.cron === TICK_CRON && cfg.autoTick) {
+      ctx.waitUntil(epoch(env).tick());
+    }
   },
 };

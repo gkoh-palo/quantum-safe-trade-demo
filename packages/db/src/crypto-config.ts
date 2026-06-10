@@ -15,6 +15,8 @@ export interface ActiveCryptoConfig {
   crqcProgress: number;
   breakMode: BreakMode;
   keyring: KeyMaterial;
+  autoGenerate: boolean;
+  autoTick: boolean;
 }
 
 export interface CryptoConfigInit {
@@ -42,6 +44,8 @@ async function rowToActive(row: Row): Promise<ActiveCryptoConfig> {
     crqcProgress: row.crqcProgress,
     breakMode: row.breakMode as BreakMode,
     keyring: await deserializeKeyMaterial(row.keyring as SerializedKeyMaterial),
+    autoGenerate: row.autoGenerate,
+    autoTick: row.autoTick,
   };
 }
 
@@ -91,6 +95,23 @@ export function cryptoConfigRepo(db: Database) {
       const row = inserted[0];
       if (!row) throw new Error("cryptoConfig.setActive: insert returned no row");
       return rowToActive(row);
+    },
+
+    /** Toggle the cron auto-modes on the active row. */
+    async setAuto(state: {
+      autoGenerate?: boolean;
+      autoTick?: boolean;
+    }): Promise<ActiveCryptoConfig> {
+      await repo.ensureActive();
+      const patch: Partial<{ autoGenerate: boolean; autoTick: boolean; updatedAt: Date }> = {
+        updatedAt: new Date(),
+      };
+      if (state.autoGenerate !== undefined) patch.autoGenerate = state.autoGenerate;
+      if (state.autoTick !== undefined) patch.autoTick = state.autoTick;
+      await db.update(cryptoConfig).set(patch).where(eq(cryptoConfig.active, true));
+      const active = await repo.getActive();
+      if (!active) throw new Error("cryptoConfig.setAuto: no active config after update");
+      return active;
     },
 
     /** Update the era + CRQC progress on the active row (EpochClock write-through). */

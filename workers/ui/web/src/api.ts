@@ -6,6 +6,8 @@ export interface EraState {
   crqcProgress: number;
   breakMode: "genuine" | "projected";
   scheme: string;
+  autoGenerate: boolean;
+  autoTick: boolean;
 }
 
 export interface SchemeScore {
@@ -174,6 +176,12 @@ export const admin = {
   },
   resetArchive: () =>
     fetch("/api/admin/reset-archive", { method: "POST", headers: adminHeaders() }).then(asResult),
+  setAuto: (state: { autoGenerate?: boolean; autoTick?: boolean }) =>
+    fetch("/api/admin/auto", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify(state),
+    }).then(asResult),
 };
 
 export const ENCRYPTION_SCHEME_KEYS = [

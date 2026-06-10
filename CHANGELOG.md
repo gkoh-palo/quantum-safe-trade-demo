@@ -12,6 +12,14 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-10 — M8 cron feeds (hands-off demo).** Two Cron Triggers on `ui`, gated by per-row
+  auto-mode flags so they're no-ops until switched on: **trade-generator** (`*/1 * * * *`) posts
+  a random trade through sentry/quantum (real seal+emit) to keep the wire alive, and
+  **epoch-tick** (`*/2 * * * *`) nudges the CRQC countdown forward (`EpochClock.tick`, flips to
+  the quantum era at 100%). New `crypto_config.auto_generate` / `auto_tick` columns (migration
+  `0003`) + `cryptoConfigRepo.setAuto`; `@qstd/shared` `randomTradeBody`; admin `/api/admin/auto`
+  endpoint + two toggles in the admin view. The `scheduled` handler switches on `event.cron` and
+  only fires the enabled feeds. 1 new test; all workers bundle clean.
 - **2026-06-10 — M7 admin control plane (token-gated).** The `/admin` view + control endpoints,
   gated by an `ADMIN_TOKEN` break-glass header (`x-admin-token`); Better Auth session gating is
   the M7b follow-up. New `ui` BFF routes under `/api/admin/*`: **set scheme + break-mode**
