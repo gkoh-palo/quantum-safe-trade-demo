@@ -12,6 +12,16 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-10 — M7 admin control plane (token-gated).** The `/admin` view + control endpoints,
+  gated by an `ADMIN_TOKEN` break-glass header (`x-admin-token`); Better Auth session gating is
+  the M7b follow-up. New `ui` BFF routes under `/api/admin/*`: **set scheme + break-mode**
+  (`cryptoConfigRepo.setActive`, rotates the keyring — this is what finally drives the
+  hybrid-ML-KEM contrast from the UI), **set CRQC progress**, **inject a trade** (forwarded to
+  sentry/quantum via new service bindings so it goes through the real seal+emit path), and a
+  **raw inspector** (`@qstd/db` `inspectRecent` — recent loot with ciphertext preview +
+  recovered plaintext). The React app gains an Admin view (scheme/mode picker, CRQC slider,
+  trade injector, live inspector) reachable at `/admin`. `parseSchemeBody` is a pure validator
+  with unit tests (2 new). All workers bundle clean.
 - **2026-06-10 — M6 pitch UI.** A React + Vite pitch view served from `ui` via Workers Assets.
   The BFF gains `GET /api/state` (era + counts + scorecard + recent trades/wire in one call),
   `POST /api/break` (Eve's decrypt pass), and SPA fallback for non-`/api/*` routes; `@qstd/db`

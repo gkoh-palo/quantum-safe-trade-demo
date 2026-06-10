@@ -14,6 +14,12 @@
   "durable_objects": {
     "bindings": [{ "name": "EPOCH", "class_name": "EpochClock" }],
   },
+  // The admin trade-injector forwards to the originating worker so injected trades go
+  // through the real seal + emit path. ADMIN_TOKEN is a runtime secret (wrangler secret).
+  "services": [
+    { "binding": "SENTRY", "service": "qstd-sentry" },
+    { "binding": "QUANTUM", "service": "qstd-quantum" },
+  ],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EpochClock"] }],
   // Serve the built React pitch app (workers/ui/web) as static assets; the Worker
   // handles /api/* and the assets binding does SPA fallback for everything else.

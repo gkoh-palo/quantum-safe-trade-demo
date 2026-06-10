@@ -135,9 +135,15 @@ importers:
 
   workers/ui:
     dependencies:
+      '@qstd/crypto':
+        specifier: workspace:^
+        version: link:../../packages/crypto
       '@qstd/db':
         specifier: workspace:^
         version: link:../../packages/db
+      '@qstd/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
 
   workers/ui/web:
     dependencies:

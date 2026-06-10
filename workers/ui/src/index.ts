@@ -10,14 +10,18 @@ import {
   harvestedPacketsRepo,
   runBreakBatch,
 } from "@qstd/db";
+import { handleAdmin } from "./admin.js";
 import { EpochClock } from "./epoch-clock.js";
 
 export { EpochClock };
 
 interface Env {
   readonly NEON_DATABASE_URL: string;
+  readonly ADMIN_TOKEN?: string;
   readonly EPOCH: DurableObjectNamespace<EpochClock>;
   readonly ASSETS: Fetcher;
+  readonly SENTRY: Fetcher;
+  readonly QUANTUM: Fetcher;
 }
 
 const epoch = (env: Env) => env.EPOCH.get(env.EPOCH.idFromName("global"));
@@ -73,6 +77,10 @@ export default {
       });
       return Response.json(summary);
     }
+
+    // Admin control plane (token-gated).
+    const admin = await handleAdmin(request, env, pathname, method);
+    if (admin) return admin;
 
     if (pathname.startsWith("/api/")) {
       return Response.json(
