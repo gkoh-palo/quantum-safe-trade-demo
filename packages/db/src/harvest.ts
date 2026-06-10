@@ -132,6 +132,7 @@ export interface BreakSummary {
   recovered: number;
   protectedCount: number;
   gatedSkipped: number;
+  errored: number;
   exposedNotional: number;
 }
 
@@ -169,6 +170,7 @@ export async function runBreakBatch(
     recovered: 0,
     protectedCount: 0,
     gatedSkipped: 0,
+    errored: 0,
     exposedNotional: 0,
   };
 
@@ -177,11 +179,26 @@ export async function runBreakBatch(
     if (!p.envelope || !p.scheme || p.scheme !== ctx.scheme) continue;
     summary.attempted += 1;
 
-    const result = await breakMessage(envelopeToSealed(p.envelope), {
-      mode: ctx.mode,
-      crqcProgress: ctx.crqcProgress,
-      keys: ctx.keys,
-    });
+    let result;
+    try {
+      result = await breakMessage(envelopeToSealed(p.envelope), {
+        mode: ctx.mode,
+        crqcProgress: ctx.crqcProgress,
+        keys: ctx.keys,
+      });
+    } catch {
+      // Isolate per-packet failures (e.g. sealed under a since-rotated keyring the
+      // active key can't open) so one bad packet can't abort the whole batch.
+      await repo.markAttempted(p.id, {
+        broken: false,
+        breakMethod: "error",
+        recoveredPlaintext: null,
+        exposedNotional: null,
+        exposedCounterparty: null,
+      });
+      summary.errored += 1;
+      continue;
+    }
 
     if (result.recovered) {
       const { payload, notional, counterparty } = extractExposure(result.plaintext);

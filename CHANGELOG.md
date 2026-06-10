@@ -117,6 +117,16 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
+- **2026-06-10 — Break survived key rotation; isolated per-packet failures.** Switching the
+  active scheme (or re-applying one) minted a brand-new keyring, orphaning already-harvested
+  packets — the break engine then threw decrypting them with the wrong key, and with no
+  per-packet error isolation the whole batch 500'd, so the scorecard showed everything
+  "protected / $0" (RSA looking _safe_ — the opposite of the truth). Fixes: (1) `runBreakBatch`
+  now isolates per-packet failures (a packet that can't be opened is marked `error`, the batch
+  continues); (2) `setActive` **reuses the existing keyring for a (scheme, breakMode) pair**
+  instead of regenerating, so switching schemes back and forth no longer orphans loot; (3) new
+  admin **Clear archive** (`POST /api/admin/reset-archive` + button) wipes trades/wire/loot for
+  a clean slate. 1 new test (per-packet isolation).
 - **2026-06-10 — Seed auto-loads `packages/db/.env`.** `pnpm --filter @qstd/db seed` runs as a
   plain `tsx` script and didn't load any env file, so it failed with "NEON_DATABASE_URL is
   required" even with a local `.env` present. The seed now `process.loadEnvFile(".env")` when

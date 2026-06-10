@@ -63,6 +63,17 @@ export function Admin() {
           value={token}
           onChange={(e) => saveToken(e.target.value)}
         />
+        <button
+          className="lever reset small"
+          onClick={async () => {
+            if (!confirm("Wipe all trades, wire messages and harvested loot?")) return;
+            const r = await admin.resetArchive();
+            flash(r.ok, r.ok ? "Archive cleared — clean slate." : `Failed (${r.status})`);
+            void refreshInspect();
+          }}
+        >
+          Clear archive (wipe trades + loot)
+        </button>
       </section>
 
       {note && <div className={`note ${note.ok ? "ok" : "bad"}`}>{note.text}</div>}

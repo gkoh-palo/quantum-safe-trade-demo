@@ -172,6 +172,8 @@ export const admin = {
     if (!res.ok) throw new Error(`inspect ${res.status}`);
     return res.json();
   },
+  resetArchive: () =>
+    fetch("/api/admin/reset-archive", { method: "POST", headers: adminHeaders() }).then(asResult),
 };
 
 export const ENCRYPTION_SCHEME_KEYS = [

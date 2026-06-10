@@ -106,6 +106,37 @@ describe("break engine (runBreakBatch)", () => {
     expect(summary.attempted).toBe(0);
     expect(repo.outcomes.size).toBe(0);
   });
+
+  it("isolates a packet sealed under a different keyring — one bad packet can't abort the batch", async () => {
+    const keys = await generateEncryptionKeys("rsa-oaep", "projected");
+    const orphanKeys = await generateEncryptionKeys("rsa-oaep", "projected");
+    const good = await seal("rsa-oaep", canonicalTradePayload(TRADE), keys);
+    const orphan = await seal("rsa-oaep", canonicalTradePayload(TRADE), orphanKeys);
+    const repo = new FakeBreakRepo([
+      {
+        id: "good",
+        scheme: "rsa-oaep",
+        envelope: sealedToEnvelope("wm-good", "sentry", "quantum", "classical", good),
+      },
+      {
+        id: "orphan",
+        scheme: "rsa-oaep",
+        envelope: sealedToEnvelope("wm-orphan", "sentry", "quantum", "classical", orphan),
+      },
+    ]);
+
+    const summary = await runBreakBatch(repo, {
+      scheme: "rsa-oaep",
+      mode: "projected",
+      crqcProgress: 100,
+      keys,
+    });
+
+    expect(summary.recovered).toBe(1); // the matching packet still breaks
+    expect(summary.errored).toBe(1); // the orphan is isolated, not fatal
+    expect(repo.outcomes.get("good")?.broken).toBe(true);
+    expect(repo.outcomes.get("orphan")).toMatchObject({ broken: false, breakMethod: "error" });
+  });
 });
 
 describe("scorecard (summarizeScorecard)", () => {

@@ -5,7 +5,7 @@
 import type { DurableObjectNamespace, Fetcher } from "@cloudflare/workers-types";
 import { ENCRYPTION_SCHEMES } from "@qstd/crypto";
 import type { BreakMode, EncryptionScheme } from "@qstd/crypto";
-import { cryptoConfigRepo, getDb, inspectRecent } from "@qstd/db";
+import { clearDemoData, cryptoConfigRepo, getDb, inspectRecent } from "@qstd/db";
 import type { EpochClock } from "./epoch-clock.js";
 
 export interface AdminEnv {
@@ -101,6 +101,13 @@ export async function handleAdmin(
   // Raw inspector: recent loot, ciphertext preview + recovered plaintext.
   if (pathname === "/api/admin/inspect" && method === "GET") {
     return json(await inspectRecent(db));
+  }
+
+  // Wipe trades + wire + loot for a clean slate (resets the era too).
+  if (pathname === "/api/admin/reset-archive" && method === "POST") {
+    await clearDemoData(db);
+    await epoch(env).reset();
+    return json({ ok: true });
   }
 
   return json({ error: { code: "NOT_FOUND", message: "Unknown admin endpoint" } }, 404);

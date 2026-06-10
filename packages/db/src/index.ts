@@ -41,3 +41,5 @@ export type { MigrationOutcome } from "./migration.js";
 
 export { getDashboardState, inspectRecent } from "./dashboard.js";
 export type { DashboardState, WireSummary, InspectedPacket } from "./dashboard.js";
+
+export { clearDemoData } from "./reset.js";
