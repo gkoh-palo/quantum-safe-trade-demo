@@ -16,15 +16,16 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0–M4 merged + deployed live; M5 done — in review.** The whole backend loop is built: trades
-flow (M1) → sealed + harvested (M3) → migrated Sentry⇄Quantum by the integration mapper (M5) →
-era flip + break + scorecard (M4). M4 was smoke-tested live (RSA traffic broke, $150m exposed).
-Next: **M6** (pitch UI) / **M7** (admin UI + Better Auth gating the era + scheme controls).
-Only backend gap left before UI: none on the critical path — M6/M7 are the front-end.
+**M0–M5 merged + deployed live; M6 done — in review.** Backend loop complete (trades → sealed +
+harvested → migrated → era flip + break + scorecard) and the **pitch UI** is built: a React app
+served from `ui` with the live scorecard + the "Advance to the Quantum Era" lever. M4 was
+smoke-tested live (RSA broke, $150m exposed). Next: **M7** (admin UI + Better Auth gating the
+era + scheme controls; scheme/break-mode/CRQC controls + trade injector + inspector). Then
+**M8/M9** (crons + polish/reset).
 
-**Live ops state:** queues created (`trade-migration`, `harvest-tap`, `harvest-tap-dlq`);
-`NEON_DATABASE_URL` secret on sentry/quantum/hacker/**ui**; DB seeded; smoke-tested live.
-Workers at `https://qstd-<name>.gkoh.workers.dev`. Headless pitch:
+**Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
+DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`. The pitch UI
+lives at the `ui` root; headless pitch still works:
 `POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
 **Deploy prerequisites (M5):** create the DLQ `wrangler queues create trade-migration-dlq`
@@ -84,9 +85,14 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 6. ✅ **M5 integration mapper** — `@qstd/shared` mapping rules (`mapTrade`); `@qstd/db`
    `mappings` repo + `migrateFromEnvelope`; integration consumes `trade-migration` (open → map →
    persist → re-seal → mirror). Representative product map (PLAN §13 Q2).
-7. **M6**: pitch UI — live wire, HNDL timeline, the switch, scorecard (React + Vite in `ui`).
+7. ✅ **M6 pitch UI** — React + Vite app served from `ui` (Workers Assets); BFF `GET /api/state`
+   and `POST /api/break`; the era badge, scorecard, "Advance to the Quantum Era" lever, HNDL
+   timeline, live wire feed. The deploy job builds `web/dist` before `wrangler deploy`.
 8. **M7**: admin UI + Better Auth — gate the era + scheme controls; add the scheme/break-mode/
-   CRQC controls + trade injector + inspector. (The era endpoints on `ui` are open until then.)
+   CRQC controls + trade injector + inspector. (The era + break endpoints on `ui` are open until
+   then.)
+9. **M8/M9**: cron feeds (`trade-generator`, `epoch-tick`) + polish (full reset, captions, demo
+   rehearsal).
 
 **Outstanding for M4 deploy:** set the `NEON_DATABASE_URL` runtime secret on **ui** (the new
 EpochClock DO writes `crypto_config`). Everything else (queues, secrets on sentry/quantum/hacker,

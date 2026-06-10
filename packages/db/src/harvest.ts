@@ -103,6 +103,18 @@ export function harvestedPacketsRepo(db: Database) {
     async count(): Promise<number> {
       return db.$count(harvestedPackets);
     },
+
+    /** Un-break every packet (demo reset): clears the break result, keeps the loot. */
+    async resetBreaks(): Promise<void> {
+      await db.update(harvestedPackets).set({
+        broken: false,
+        brokenAt: null,
+        breakMethod: null,
+        recoveredPlaintext: null,
+        exposedNotional: null,
+        exposedCounterparty: null,
+      });
+    },
   };
 }
 

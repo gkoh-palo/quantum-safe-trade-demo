@@ -87,6 +87,10 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Build worker assets (if any)
+        # ui serves a built Vite app from web/dist; build it before wrangler deploy.
+        if: matrix.dir == 'workers/ui'
+        run: pnpm --filter @qstd/ui build
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

@@ -1,7 +1,15 @@
-// qstd-ui — the BFF + admin control plane. Hosts the EpochClock Durable Object and
-// (for now) the era-control endpoints. Static React assets, the rest of the BFF,
-// and Better Auth gating of these admin routes arrive in M6/M7 — they are open here.
-import type { DurableObjectNamespace } from "@cloudflare/workers-types";
+// qstd-ui — the BFF + control plane. Serves the React pitch app (Workers Assets)
+// and owns /api/*: aggregate state for the pitch view, the era controls (EpochClock
+// DO), and Eve's break trigger. Better Auth gating of the mutating routes is M7 —
+// they are open here.
+import type { DurableObjectNamespace, Fetcher } from "@cloudflare/workers-types";
+import {
+  cryptoConfigRepo,
+  getDashboardState,
+  getDb,
+  harvestedPacketsRepo,
+  runBreakBatch,
+} from "@qstd/db";
 import { EpochClock } from "./epoch-clock.js";
 
 export { EpochClock };
@@ -9,6 +17,7 @@ export { EpochClock };
 interface Env {
   readonly NEON_DATABASE_URL: string;
   readonly EPOCH: DurableObjectNamespace<EpochClock>;
+  readonly ASSETS: Fetcher;
 }
 
 const epoch = (env: Env) => env.EPOCH.get(env.EPOCH.idFromName("global"));
@@ -22,7 +31,14 @@ export default {
       return Response.json({ service: "ui", status: "ok" });
     }
 
-    // Era control (TODO M7: gate the mutating routes behind Better Auth).
+    // Aggregate everything the pitch view polls for, in one call.
+    if (pathname === "/api/state" && method === "GET") {
+      const db = getDb(env.NEON_DATABASE_URL);
+      const [era, dashboard] = await Promise.all([epoch(env).getState(), getDashboardState(db)]);
+      return Response.json({ era, ...dashboard });
+    }
+
+    // Era control (TODO M7: gate these behind Better Auth).
     if (pathname === "/api/era" && method === "GET") {
       return Response.json(await epoch(env).getState());
     }
@@ -30,6 +46,8 @@ export default {
       return Response.json(await epoch(env).advanceEra());
     }
     if (pathname === "/api/era/reset" && method === "POST") {
+      // Reset to today AND un-break the loot, so the demo is repeatable.
+      await harvestedPacketsRepo(getDb(env.NEON_DATABASE_URL)).resetBreaks();
       return Response.json(await epoch(env).reset());
     }
     if (pathname === "/api/era/progress" && method === "POST") {
@@ -43,6 +61,27 @@ export default {
       return Response.json(await epoch(env).setProgress(body.progress));
     }
 
-    return new Response("Not Found", { status: 404 });
+    // Eve's "decrypt later" pass — break whatever the current era allows.
+    if (pathname === "/api/break" && method === "POST") {
+      const db = getDb(env.NEON_DATABASE_URL);
+      const cfg = await cryptoConfigRepo(db).ensureActive();
+      const summary = await runBreakBatch(harvestedPacketsRepo(db), {
+        scheme: cfg.scheme,
+        mode: cfg.breakMode,
+        crqcProgress: cfg.crqcProgress,
+        keys: cfg.keyring,
+      });
+      return Response.json(summary);
+    }
+
+    if (pathname.startsWith("/api/")) {
+      return Response.json(
+        { error: { code: "NOT_FOUND", message: "Unknown endpoint" } },
+        { status: 404 },
+      );
+    }
+
+    // Everything else → the React SPA (the assets binding handles SPA fallback).
+    return env.ASSETS.fetch(request);
   },
 };
