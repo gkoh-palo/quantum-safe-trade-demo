@@ -98,6 +98,8 @@ export const wireMessages = pgTable("wire_messages", {
 export const harvestedPackets = pgTable("harvested_packets", {
   id: id(),
   wireMessageId: uuid("wire_message_id").notNull(),
+  scheme: text("scheme"), // denormalised for scorecard grouping
+  envelope: jsonb("envelope"), // the sniffed WireEnvelope — what Eve breaks against
   harvestedAt: timestamp("harvested_at", { withTimezone: true }).notNull().defaultNow(),
   broken: boolean("broken").notNull().default(false),
   breakMethod: text("break_method"), // 'shor-rsa'|'shor-ecdh'|'plaintext'|'failed'

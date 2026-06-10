@@ -50,6 +50,8 @@ export class HarvestArchive extends DurableObject<HarvestArchiveEnv> {
     if (isNew) {
       await harvestedPacketsRepo(getDb(this.env.NEON_DATABASE_URL)).insert({
         wireMessageId: envelope.wireMessageId,
+        scheme: envelope.scheme,
+        envelope,
       });
     }
     return { archived: this.count(), isNew };

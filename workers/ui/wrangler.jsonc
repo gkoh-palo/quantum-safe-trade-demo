@@ -9,4 +9,10 @@
   // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // EpochClock: the single global era + CRQC-progress state. Auto-created via the
+  // migration tag. Needs NEON_DATABASE_URL (runtime secret) to mirror into crypto_config.
+  "durable_objects": {
+    "bindings": [{ "name": "EPOCH", "class_name": "EpochClock" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EpochClock"] }],
 }

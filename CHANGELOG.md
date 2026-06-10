@@ -12,6 +12,19 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-10 — M4 break + era (the payoff).** "Advance to the Quantum Era" now genuinely
+  breaks the harvested traffic. **EpochClock DO** (in `ui`) is the single global era + CRQC-progress
+  state, write-through to the active `crypto_config` row so every worker reads it over Neon;
+  `ui` exposes `GET /api/era` + `POST /api/era/{advance,reset,progress}` (open for now; Better
+  Auth gating is M7). The **break engine** (`@qstd/db` `runBreakBatch`, exposed at hacker
+  `POST /break`) iterates un-attempted `harvested_packets`, reconstructs each sniffed envelope,
+  applies the §5 outcome via `@qstd/crypto` (genuine breaks live; projected gates on CRQC=100;
+  hybrid-ML-KEM stays opaque), and records `recovered_plaintext` + exposed notional/counterparty.
+  The **scorecard** (`summarizeScorecard`, hacker `GET /scorecard`) rolls it up by scheme:
+  harvested vs broken vs protected, $ exposed, counterparties leaked. `harvested_packets` gains
+  `scheme` + `envelope` columns (migration `0002`). 5 new tests (break genuine/projected/PQC/
+  scheme-mismatch + scorecard); all five workers bundle clean. Signature `forge()` deferred
+  (signatures aren't applied to wire messages yet).
 - **2026-06-09 — M3 wire + harvest (capture half).** The HNDL capture path is live in code.
   `@qstd/crypto` gains `serializeKeyMaterial`/`deserializeKeyMaterial` (bytes/bigints → hex,
   RSA `CryptoKey` → SPKI/PKCS8) so the active keyring persists. `@qstd/db` adds the

@@ -126,7 +126,11 @@ importers:
         specifier: ^4.12.25
         version: 4.12.25
 
-  workers/ui: {}
+  workers/ui:
+    dependencies:
+      '@qstd/db':
+        specifier: workspace:^
+        version: link:../../packages/db
 
 packages:
 
