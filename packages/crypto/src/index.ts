@@ -35,3 +35,6 @@ export {
 } from "./registry.js";
 
 export { utf8Encode, utf8Decode, bytesToHex, hexToBytes } from "./bytes.js";
+
+export { serializeKeyMaterial, deserializeKeyMaterial } from "./serialize.js";
+export type { SerializedKeyMaterial } from "./serialize.js";

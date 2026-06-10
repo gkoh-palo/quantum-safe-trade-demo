@@ -12,10 +12,8 @@
 //     engine can reveal the plaintext a real CRQC *would* recover.
 // The PQC path is never recoverable in either mode — that asymmetry is the pitch.
 
-// WebCrypto's CryptoKey isn't a global under `types: ["node"]` (no DOM lib). Pull
-// the type from Node's webcrypto namespace; this is type-only and erased at build,
-// so it adds no runtime dependency to the Worker bundle (which uses global crypto).
-import type { webcrypto } from "node:crypto";
+// `CryptoKey` is the global WebCrypto type (from @cloudflare/workers-types in this
+// workspace; present at runtime in both Workers and Node ≥20).
 
 /** Confidentiality schemes — govern how a wire message is sealed. */
 export type EncryptionScheme =
@@ -85,8 +83,8 @@ export type KeyMaterial =
   | {
       readonly scheme: "rsa-oaep";
       readonly mode: "projected";
-      readonly publicKey: webcrypto.CryptoKey;
-      readonly privateKey: webcrypto.CryptoKey;
+      readonly publicKey: CryptoKey;
+      readonly privateKey: CryptoKey;
     }
   // ECDH → HKDF → AES-GCM
   | {

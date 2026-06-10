@@ -7,4 +7,12 @@
   // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Quantum also originates migrations (quantum→sentry): seal + fan out to the same
+  // two queues. Queues must exist: `wrangler queues create`.
+  "queues": {
+    "producers": [
+      { "binding": "MIGRATION", "queue": "trade-migration" },
+      { "binding": "HARVEST_TAP", "queue": "harvest-tap" },
+    ],
+  },
 }

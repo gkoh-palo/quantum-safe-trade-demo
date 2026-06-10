@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@qstd/crypto": "workspace:^",
     "@qstd/shared": "workspace:^",
     "drizzle-orm": "^0.45.2"
   }

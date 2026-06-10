@@ -8,4 +8,21 @@
   // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Eve consumes harvest-tap and appends each ciphertext to the HarvestArchive DO.
+  // The DO is auto-created via the migration tag; the queue + DLQ must exist:
+  // `wrangler queues create harvest-tap` / `... harvest-tap-dlq`.
+  "queues": {
+    "consumers": [
+      {
+        "queue": "harvest-tap",
+        "max_batch_size": 10,
+        "max_retries": 3,
+        "dead_letter_queue": "harvest-tap-dlq",
+      },
+    ],
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "HARVEST_ARCHIVE", "class_name": "HarvestArchive" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HarvestArchive"] }],
 }

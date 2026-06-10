@@ -7,4 +7,13 @@
   // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // On trade create we seal the payload and fan it out: trade-migration (the legit
+  // Sentry⇄Quantum handoff, consumed by integration in M5) + harvest-tap (Eve's
+  // ciphertext mirror, consumed by hacker). Queues must exist: `wrangler queues create`.
+  "queues": {
+    "producers": [
+      { "binding": "MIGRATION", "queue": "trade-migration" },
+      { "binding": "HARVEST_TAP", "queue": "harvest-tap" },
+    ],
+  },
 }
