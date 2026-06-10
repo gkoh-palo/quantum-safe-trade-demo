@@ -13,6 +13,8 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/coverage/**",
       "**/worker-configuration.d.ts",
+      // The React app has its own toolchain (Vite + its own tsconfig).
+      "workers/ui/web/**",
     ],
   },
   js.configs.recommended,

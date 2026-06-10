@@ -12,6 +12,18 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-10 — M6 pitch UI.** A React + Vite pitch view served from `ui` via Workers Assets.
+  The BFF gains `GET /api/state` (era + counts + scorecard + recent trades/wire in one call),
+  `POST /api/break` (Eve's decrypt pass), and SPA fallback for non-`/api/*` routes; `@qstd/db`
+  adds `getDashboardState` + `harvestedPacketsRepo.resetBreaks` (so a reset un-breaks the loot
+  for a repeatable demo). The page polls live state and shows the era badge, headline metrics
+  (trades / harvested / migrations / notional exposed), the **"Advance to the Quantum Era"**
+  lever (advance → break in one click; reset to today), the HNDL timeline, a per-scheme
+  scorecard (broken vs protected, $ exposed, PQ-safe badge), a live wire feed (🔒/🔓 per
+  packet), and the honesty footer. Build wiring: `ui` build compiles `web/dist` (tsc + vite),
+  the deploy job builds it before `wrangler deploy`, and `workers/ui/web` is its own toolchain
+  (own tsconfig, excluded from root lint/typecheck). 48 KB gzipped; all workers bundle clean.
+  Era/break routes are open until M7 gates them with Better Auth.
 - **2026-06-10 — M5 integration mapper.** The legitimate Sentry⇄Quantum migration half. New
   `@qstd/shared` mapping rules (`mapTrade`) + `parseCanonicalTrade`. A migration re-books a trade
   into the other system's product taxonomy **while preserving its asset/liability class** — a

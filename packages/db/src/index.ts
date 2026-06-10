@@ -38,3 +38,6 @@ export type { InsertMapping } from "./mappings.js";
 
 export { migrateFromEnvelope } from "./migration.js";
 export type { MigrationOutcome } from "./migration.js";
+
+export { getDashboardState } from "./dashboard.js";
+export type { DashboardState, WireSummary } from "./dashboard.js";

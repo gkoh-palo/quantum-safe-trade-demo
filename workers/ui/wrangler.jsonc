@@ -15,4 +15,11 @@
     "bindings": [{ "name": "EPOCH", "class_name": "EpochClock" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EpochClock"] }],
+  // Serve the built React pitch app (workers/ui/web) as static assets; the Worker
+  // handles /api/* and the assets binding does SPA fallback for everything else.
+  "assets": {
+    "directory": "./web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+  },
 }

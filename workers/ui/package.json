@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "build": "pnpm --filter @qstd/ui-web build",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types"
   },
