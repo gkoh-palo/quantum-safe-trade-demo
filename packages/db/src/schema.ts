@@ -44,6 +44,9 @@ export const cryptoConfig = pgTable("crypto_config", {
   // ref; for this single-env demo we keep the whole keyring here — Eve taps the
   // wire, never the DB). See @qstd/crypto SerializedKeyMaterial.
   keyring: jsonb("keyring"),
+  // Cron auto-mode (PLAN §3): trade-generator keeps the wire live; epoch-tick advances CRQC.
+  autoGenerate: boolean("auto_generate").notNull().default(false),
+  autoTick: boolean("auto_tick").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -16,20 +16,22 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0–M6 merged + deployed live; M7 done — in review.** Full demo is built: pitch UI + the
-token-gated **admin control plane** (scheme/break-mode switch, CRQC slider, trade injector, raw
-inspector) at `/admin`. The scheme switch finally drives the hybrid-ML-KEM contrast from the UI.
-Next: **M7b** (Better Auth — replace the token gate with sessions), then **M8/M9** (cron feeds +
-polish/full-reset/demo rehearsal). The core build is essentially complete.
+**M0–M7 merged + deployed live (+ keyring-rotation fix); M8 done — in review.** Full demo +
+admin control plane + the **cron feeds** (auto-mode trade-generator + epoch-tick) so it runs
+hands-off. The keyring-stability fix (PR #13) resolved the "$0 / RSA looks safe" bug; verified
+live. Remaining: **M7b** (Better Auth, replace the token gate) and **M9** (captions, demo
+rehearsal — full-reset already shipped as admin "Clear archive"). The core build is complete.
 
 **Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
 DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`. The pitch UI
 lives at the `ui` root; headless pitch still works:
 `POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
-**Deploy prerequisites (M7):** set `ADMIN_TOKEN` on **ui** (`wrangler secret put ADMIN_TOKEN
---name qstd-ui`) — admin routes 401 without it. Service bindings ui→sentry/quantum auto-wire on
-deploy. Still outstanding from M5: set `NEON_DATABASE_URL` on **integration** (else migrations
+**Deploy prerequisites (M8):** none new — the two Cron Triggers on `ui` auto-create on deploy
+and are no-ops until toggled on in `/admin` (Auto-mode card). Migration `0003` (auto_generate /
+auto_tick) applies via the migrate job. From M7: `ADMIN_TOKEN` on **ui** (`wrangler secret put
+ADMIN_TOKEN --name qstd-ui`) — admin routes 401 without it. Service bindings ui→sentry/quantum
+auto-wire on deploy. Still outstanding from M5: set `NEON_DATABASE_URL` on **integration** (else migrations
 stay 0).
 
 ## Repo & access
@@ -90,10 +92,12 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
    timeline, live wire feed. The deploy job builds `web/dist` before `wrangler deploy`.
 8. ✅ **M7 admin control plane** — `/admin` view + `/api/admin/*` (scheme/break-mode, CRQC,
    trade injector via service bindings, raw inspector), token-gated by `ADMIN_TOKEN`.
-9. **M7b**: Better Auth — replace the token gate with email+password sessions (Drizzle adapter,
-   generated tables, seeded admin), gate `/admin` + the admin routes.
-10. **M8/M9**: cron feeds (`trade-generator`, `epoch-tick`) + polish (full reset, captions, demo
-    rehearsal).
+9. ✅ **M8 cron feeds** — `trade-generator` + `epoch-tick` Cron Triggers on `ui`, gated by
+   `auto_generate` / `auto_tick` (migration `0003`), with admin toggles. Hands-off demo.
+10. **M7b**: Better Auth — replace the token gate with email+password sessions (Drizzle adapter,
+    generated tables, seeded admin), gate `/admin` + the admin routes.
+11. **M9**: polish — captions, demo-script rehearsal, fallbacks. (Full archive reset already
+    shipped as the admin "Clear archive".)
 
 ## Open questions (from PLAN §13)
 

@@ -16,6 +16,8 @@ export interface EpochState {
   crqcProgress: number;
   breakMode: "genuine" | "projected";
   scheme: string;
+  autoGenerate: boolean;
+  autoTick: boolean;
 }
 
 const clampProgress = (n: number): number => Math.max(0, Math.min(100, Math.round(n)));
@@ -26,8 +28,7 @@ export class EpochClock extends DurableObject<EpochClockEnv> {
   }
 
   async getState(): Promise<EpochState> {
-    const c = await cryptoConfigRepo(this.#db()).ensureActive();
-    return { era: c.era, crqcProgress: c.crqcProgress, breakMode: c.breakMode, scheme: c.scheme };
+    return toState(await cryptoConfigRepo(this.#db()).ensureActive());
   }
 
   /** The big switch: jump to the quantum era and complete the countdown. */
@@ -41,13 +42,37 @@ export class EpochClock extends DurableObject<EpochClockEnv> {
     return this.#commit(p >= 100 ? "quantum" : "classical", p);
   }
 
+  /** epoch-tick cron: nudge the CRQC countdown forward; flip to quantum at 100%. */
+  async tick(step = 10): Promise<EpochState> {
+    const current = await this.getState();
+    if (current.era === "quantum") return current; // already arrived
+    return this.setProgress(current.crqcProgress + step);
+  }
+
   /** Back to today — classical era, countdown reset (demo reset). */
   async reset(): Promise<EpochState> {
     return this.#commit("classical", 0);
   }
 
   async #commit(era: "classical" | "quantum", crqcProgress: number): Promise<EpochState> {
-    const c = await cryptoConfigRepo(this.#db()).setEra({ era, crqcProgress });
-    return { era: c.era, crqcProgress: c.crqcProgress, breakMode: c.breakMode, scheme: c.scheme };
+    return toState(await cryptoConfigRepo(this.#db()).setEra({ era, crqcProgress }));
   }
+}
+
+function toState(c: {
+  era: "classical" | "quantum";
+  crqcProgress: number;
+  breakMode: "genuine" | "projected";
+  scheme: string;
+  autoGenerate: boolean;
+  autoTick: boolean;
+}): EpochState {
+  return {
+    era: c.era,
+    crqcProgress: c.crqcProgress,
+    breakMode: c.breakMode,
+    scheme: c.scheme,
+    autoGenerate: c.autoGenerate,
+    autoTick: c.autoTick,
+  };
 }

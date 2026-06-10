@@ -21,6 +21,8 @@
     { "binding": "QUANTUM", "service": "qstd-quantum" },
   ],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EpochClock"] }],
+  // Cron feeds (auto-mode gated): trade-generator every 1m, epoch-tick every 2m.
+  "triggers": { "crons": ["*/1 * * * *", "*/2 * * * *"] },
   // Serve the built React pitch app (workers/ui/web) as static assets; the Worker
   // handles /api/* and the assets binding does SPA fallback for everything else.
   "assets": {

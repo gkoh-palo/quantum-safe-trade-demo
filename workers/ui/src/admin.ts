@@ -68,6 +68,16 @@ export async function handleAdmin(
     });
   }
 
+  // Toggle the cron auto-modes (trade-generator / epoch-tick).
+  if (pathname === "/api/admin/auto" && method === "POST") {
+    const body = (await request.json().catch(() => ({}))) as {
+      autoGenerate?: boolean;
+      autoTick?: boolean;
+    };
+    const cfg = await cryptoConfigRepo(db).setAuto(body);
+    return json({ autoGenerate: cfg.autoGenerate, autoTick: cfg.autoTick });
+  }
+
   // Set the CRQC countdown (intermediate values stay classical until 100%).
   if (pathname === "/api/admin/crqc" && method === "POST") {
     const body = (await request.json().catch(() => ({}))) as { progress?: number };

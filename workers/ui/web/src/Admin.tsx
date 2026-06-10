@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   admin,
   adminToken,
+  api,
   ENCRYPTION_SCHEME_KEYS,
   fmtMoney,
   SCHEME_LABELS,
@@ -82,6 +83,7 @@ export function Admin() {
         <SchemePanel flash={flash} />
         <CrqcPanel flash={flash} />
         <InjectPanel flash={flash} onInjected={refreshInspect} />
+        <AutoPanel flash={flash} />
       </section>
 
       <section className="card">
@@ -159,6 +161,48 @@ function SchemePanel({ flash }: { flash: (ok: boolean, text: string) => void }) 
       <button className="lever advance small" onClick={apply}>
         Apply scheme
       </button>
+    </div>
+  );
+}
+
+function AutoPanel({ flash }: { flash: (ok: boolean, text: string) => void }) {
+  const [gen, setGen] = useState(false);
+  const [tick, setTick] = useState(false);
+
+  useEffect(() => {
+    void api.getState().then((s) => {
+      setGen(s.era.autoGenerate);
+      setTick(s.era.autoTick);
+    });
+  }, []);
+
+  const toggle = async (key: "autoGenerate" | "autoTick", value: boolean) => {
+    if (key === "autoGenerate") setGen(value);
+    else setTick(value);
+    const r = await admin.setAuto({ [key]: value });
+    flash(r.ok, r.ok ? `${key} = ${value}` : `Failed (${r.status})`);
+  };
+
+  return (
+    <div className="card">
+      <h3>Auto-mode (cron)</h3>
+      <p className="muted">Hands-off demo: generate trades every minute, advance CRQC every two.</p>
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={gen}
+          onChange={(e) => void toggle("autoGenerate", e.target.checked)}
+        />
+        Trade generator (keep the wire live)
+      </label>
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={tick}
+          onChange={(e) => void toggle("autoTick", e.target.checked)}
+        />
+        CRQC auto-tick (countdown to quantum era)
+      </label>
     </div>
   );
 }
