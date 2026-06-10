@@ -5,7 +5,7 @@
 > changes** (alongside a [CHANGELOG.md](../CHANGELOG.md) entry). Keep it short and current;
 > design detail lives in [PLAN.md](PLAN.md).
 
-**Last updated:** 2026-06-09
+**Last updated:** 2026-06-10
 
 ## What this is
 
@@ -16,18 +16,21 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0–M2 merged; M1 merged; M3 done — in review.** Capture half of the HNDL flow is built:
-sentry/quantum seal each new trade and fan it out to the `trade-migration` + `harvest-tap`
-queues; hacker consumes `harvest-tap` into the `HarvestArchive` DO + `harvested_packets`. The
-active keyring lives serialized in `crypto_config`. Next on the critical path: **M4**
-(`EpochClock` DO + break engine wired to era state + scorecard; crypto `forge()`), then **M5**
-(integration `trade-migration` consumer: map + re-seal + forward).
+**M0–M3 merged + deployed live; M4 done — in review.** The full HNDL loop works: capture
+(M3) plus the break payoff (M4). EpochClock DO owns era/CRQC (mirrored to `crypto_config`);
+hacker `POST /break` runs the break engine over harvested packets; `GET /scorecard` rolls up
+the damage. Next on the critical path: **M5** (integration `trade-migration` consumer: open +
+map + re-seal + forward), then **M6** (pitch UI) / **M7** (admin UI + Better Auth, which gates
+the era + scheme controls).
 
-**Deploy prerequisites (M3):** the queues are NOT auto-created — run `wrangler queues create
-trade-migration`, `... harvest-tap`, `... harvest-tap-dlq` before deploy, else sentry/quantum/
-hacker deploys fail with "queue does not exist". The `HarvestArchive` DO is auto-created via its
-migration tag. Set `NEON_DATABASE_URL` as a runtime secret on **hacker** too (the DO writes
-`harvested_packets`). PR #5 (deploy/workspace-deps fix) must merge first.
+**Live ops state:** queues created (`trade-migration`, `harvest-tap`, `harvest-tap-dlq`);
+`NEON_DATABASE_URL` secret set on sentry/quantum/hacker; DB seeded with the default posture
+plus baseline trades. Workers deployed at `https://qstd-<name>.gkoh.workers.dev`. Smoke-tested:
+the capture path is confirmed live (POST trade → loot archived; idempotent replay).
+
+**Deploy prerequisites (M4):** set `NEON_DATABASE_URL` runtime secret on **ui** too (the
+EpochClock DO writes `crypto_config`). The `EpochClock` DO auto-creates via its migration tag.
+Migration `0002` (harvested_packets `scheme`/`envelope`) applies via the deploy migrate job.
 
 ## Repo & access
 
@@ -49,7 +52,7 @@ migration tag. Set `NEON_DATABASE_URL` as a runtime secret on **hacker** too (th
 - **DB:** Neon Postgres + Drizzle (`neon-http` driver; `Pool` only for transactions).
 - **Auth:** Better Auth in the `ui` BFF, Drizzle adapter on Neon, email+password, gates `/admin`.
 - **Frontend:** React + Vite served from `ui` worker (Pitch view + Admin view).
-- **Env/CD:** one environment, deployed straight from `main`. pnpm, Node 20, ESM, TS strict.
+- **Env/CD:** one environment, deployed straight from `main`. pnpm, Node 22, ESM, TS strict.
 
 ## Environment / secrets
 
@@ -76,20 +79,16 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 4. ✅ **M3 wire + harvest (capture half)** — `crypto_config` keyring + `wire_messages` /
    `harvested_packets` repos; sentry/quantum seal + fan out to `trade-migration` + `harvest-tap`;
    hacker consumes `harvest-tap` into the `HarvestArchive` DO. Migration `0001`.
-5. **M4**: `EpochClock` DO + the break engine wired to era state + scorecard query; add crypto
-   `forge()` for the ECDSA-vs-ML-DSA signature story.
+5. ✅ **M4 break + era** — `EpochClock` DO (era/CRQC, mirrored to `crypto_config`); break engine
+   (`runBreakBatch`, hacker `POST /break`); scorecard (hacker `GET /scorecard`); migration `0002`.
+   Signature `forge()` deferred (no signatures on wire messages yet).
 6. **M5**: integration `trade-migration` consumer — open + map + re-seal + forward to the target
    system (the legit migration half).
+7. **M6/M7**: pitch UI + admin UI (Better Auth gates the era + scheme controls now open on `ui`).
 
-**Before first deploy with a DB:** set the `NEON_DATABASE_URL` runtime secret on `sentry` +
-`quantum` (`wrangler secret put`), and confirm the `0000_*` migration applies (the deploy.yml
-migrate job runs `pnpm --filter @qstd/db migrate`). Seed once with `pnpm --filter @qstd/db seed`.
-
-**Deploy note:** the first deploy run failed because `wrangler-action` defaulted to wrangler
-3.90.0 (no `wrangler.jsonc` support). Fix pinning the action to v4 is in PR #2 — merge it so
-`main` deploys green.
-
-When code lands, CI deploy activates automatically (secrets are in place).
+**Outstanding for M4 deploy:** set the `NEON_DATABASE_URL` runtime secret on **ui** (the new
+EpochClock DO writes `crypto_config`). Everything else (queues, secrets on sentry/quantum/hacker,
+seed, migrations) is already in place; CI deploys from `main` automatically.
 
 ## Open questions (from PLAN §13)
 

@@ -80,6 +80,18 @@ export function cryptoConfigRepo(db: Database) {
       return rowToActive(row);
     },
 
+    /** Update the era + CRQC progress on the active row (EpochClock write-through). */
+    async setEra(state: { era: Era; crqcProgress: number }): Promise<ActiveCryptoConfig> {
+      await repo.ensureActive();
+      await db
+        .update(cryptoConfig)
+        .set({ era: state.era, crqcProgress: state.crqcProgress, updatedAt: new Date() })
+        .where(eq(cryptoConfig.active, true));
+      const active = await repo.getActive();
+      if (!active) throw new Error("cryptoConfig.setEra: no active config after update");
+      return active;
+    },
+
     /** Active config, bootstrapping the default posture on first use. */
     async ensureActive(
       init: CryptoConfigInit = DEFAULT_CRYPTO_CONFIG,

@@ -18,8 +18,17 @@ export type { ActiveCryptoConfig, CryptoConfigInit } from "./crypto-config.js";
 export { wireMessagesRepo, sealAndPersist, sealedToEnvelope, envelopeToSealed } from "./wire.js";
 export type { InsertWireMessage } from "./wire.js";
 
-export { harvestedPacketsRepo } from "./harvest.js";
-export type { InsertHarvestedPacket } from "./harvest.js";
+export { harvestedPacketsRepo, runBreakBatch, summarizeScorecard } from "./harvest.js";
+export type {
+  InsertHarvestedPacket,
+  HarvestBreakRepo,
+  UnattemptedPacket,
+  BreakOutcome,
+  BreakContextInit,
+  BreakSummary,
+  Scorecard,
+  SchemeScore,
+} from "./harvest.js";
 
 export { createWireEmitter } from "./wire-emitter.js";
 export type { WireEmitter, QueueProducer } from "./wire-emitter.js";
