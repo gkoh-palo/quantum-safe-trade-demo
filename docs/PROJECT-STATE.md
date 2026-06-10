@@ -16,21 +16,20 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0–M3 merged + deployed live; M4 done — in review.** The full HNDL loop works: capture
-(M3) plus the break payoff (M4). EpochClock DO owns era/CRQC (mirrored to `crypto_config`);
-hacker `POST /break` runs the break engine over harvested packets; `GET /scorecard` rolls up
-the damage. Next on the critical path: **M5** (integration `trade-migration` consumer: open +
-map + re-seal + forward), then **M6** (pitch UI) / **M7** (admin UI + Better Auth, which gates
-the era + scheme controls).
+**M0–M4 merged + deployed live; M5 done — in review.** The whole backend loop is built: trades
+flow (M1) → sealed + harvested (M3) → migrated Sentry⇄Quantum by the integration mapper (M5) →
+era flip + break + scorecard (M4). M4 was smoke-tested live (RSA traffic broke, $150m exposed).
+Next: **M6** (pitch UI) / **M7** (admin UI + Better Auth gating the era + scheme controls).
+Only backend gap left before UI: none on the critical path — M6/M7 are the front-end.
 
 **Live ops state:** queues created (`trade-migration`, `harvest-tap`, `harvest-tap-dlq`);
-`NEON_DATABASE_URL` secret set on sentry/quantum/hacker; DB seeded with the default posture
-plus baseline trades. Workers deployed at `https://qstd-<name>.gkoh.workers.dev`. Smoke-tested:
-the capture path is confirmed live (POST trade → loot archived; idempotent replay).
+`NEON_DATABASE_URL` secret on sentry/quantum/hacker/**ui**; DB seeded; smoke-tested live.
+Workers at `https://qstd-<name>.gkoh.workers.dev`. Headless pitch:
+`POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
-**Deploy prerequisites (M4):** set `NEON_DATABASE_URL` runtime secret on **ui** too (the
-EpochClock DO writes `crypto_config`). The `EpochClock` DO auto-creates via its migration tag.
-Migration `0002` (harvested_packets `scheme`/`envelope`) applies via the deploy migrate job.
+**Deploy prerequisites (M5):** create the DLQ `wrangler queues create trade-migration-dlq`
+(the integration consumer references it) and set `NEON_DATABASE_URL` on **integration** (it now
+opens trades + writes mappings). The integration `trade-migration` consumer activates on deploy.
 
 ## Repo & access
 
@@ -82,9 +81,12 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 5. ✅ **M4 break + era** — `EpochClock` DO (era/CRQC, mirrored to `crypto_config`); break engine
    (`runBreakBatch`, hacker `POST /break`); scorecard (hacker `GET /scorecard`); migration `0002`.
    Signature `forge()` deferred (no signatures on wire messages yet).
-6. **M5**: integration `trade-migration` consumer — open + map + re-seal + forward to the target
-   system (the legit migration half).
-7. **M6/M7**: pitch UI + admin UI (Better Auth gates the era + scheme controls now open on `ui`).
+6. ✅ **M5 integration mapper** — `@qstd/shared` mapping rules (`mapTrade`); `@qstd/db`
+   `mappings` repo + `migrateFromEnvelope`; integration consumes `trade-migration` (open → map →
+   persist → re-seal → mirror). Representative product map (PLAN §13 Q2).
+7. **M6**: pitch UI — live wire, HNDL timeline, the switch, scorecard (React + Vite in `ui`).
+8. **M7**: admin UI + Better Auth — gate the era + scheme controls; add the scheme/break-mode/
+   CRQC controls + trade injector + inspector. (The era endpoints on `ui` are open until then.)
 
 **Outstanding for M4 deploy:** set the `NEON_DATABASE_URL` runtime secret on **ui** (the new
 EpochClock DO writes `crypto_config`). Everything else (queues, secrets on sentry/quantum/hacker,

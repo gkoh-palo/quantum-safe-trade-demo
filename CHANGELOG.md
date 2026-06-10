@@ -12,6 +12,16 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-10 — M5 integration mapper.** The legitimate Sentry⇄Quantum migration half. New
+  `@qstd/shared` mapping rules (`mapTrade` — a representative bidirectional product map,
+  loan↔irs / bond↔ccs / fx→bond, PLAN §13 Q2 left representative) + `parseCanonicalTrade`.
+  `@qstd/db` adds the `mappings` repo and `migrateFromEnvelope`: open the wire message (the
+  integration legitimately holds the keys), map to the counterpart system, persist the target
+  trade (idempotent on the source id) + a `mappings` link, then re-seal the migrated leg onto
+  the wire and mirror it to `harvest-tap` (so Eve sniffs the second hop too). The **integration**
+  worker now consumes `trade-migration` (the queue sentry/quantum have been producing since M3)
+  and exposes `GET /mappings/count`. 5 new tests (mapping both directions + round-trip + the
+  open→map pipeline); all five workers bundle clean.
 - **2026-06-10 — M4 break + era (the payoff).** "Advance to the Quantum Era" now genuinely
   breaks the harvested traffic. **EpochClock DO** (in `ui`) is the single global era + CRQC-progress
   state, write-through to the active `crypto_config` row so every worker reads it over Neon;

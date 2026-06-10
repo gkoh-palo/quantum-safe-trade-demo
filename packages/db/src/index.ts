@@ -32,3 +32,9 @@ export type {
 
 export { createWireEmitter } from "./wire-emitter.js";
 export type { WireEmitter, QueueProducer } from "./wire-emitter.js";
+
+export { mappingsRepo } from "./mappings.js";
+export type { InsertMapping } from "./mappings.js";
+
+export { migrateFromEnvelope } from "./migration.js";
+export type { MigrationOutcome } from "./migration.js";
