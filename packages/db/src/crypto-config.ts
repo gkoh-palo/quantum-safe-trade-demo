@@ -1,7 +1,7 @@
 // Active crypto posture (PLAN §4/§5): the single active row holds the scheme, era,
 // CRQC progress, break mode, and the serialized keyring. Workers read it to seal;
 // M4 reads it to break; M7 admin rotates it.
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { BreakMode, EncryptionScheme, KeyMaterial, SerializedKeyMaterial } from "@qstd/crypto";
 import { deserializeKeyMaterial, generateEncryptionKeys, serializeKeyMaterial } from "@qstd/crypto";
 import type { Era } from "@qstd/shared";
@@ -58,11 +58,24 @@ export function cryptoConfigRepo(db: Database) {
       return row && row.keyring ? rowToActive(row) : null;
     },
 
-    /** Generate a fresh keyring for `init`, deactivate any current row, insert + activate. */
+    /**
+     * Make `init` the active posture. Reuses the existing keyring for this exact
+     * (scheme, breakMode) if one exists, so switching schemes back and forth doesn't
+     * orphan already-harvested packets (they'd no longer be decryptable). Only mints a
+     * fresh keyring the first time a (scheme, breakMode) pair is seen.
+     */
     async setActive(init: CryptoConfigInit): Promise<ActiveCryptoConfig> {
-      const keyring = await serializeKeyMaterial(
-        await generateEncryptionKeys(init.scheme, init.breakMode),
-      );
+      const prior = await db
+        .select({ keyring: cryptoConfig.keyring })
+        .from(cryptoConfig)
+        .where(
+          and(eq(cryptoConfig.scheme, init.scheme), eq(cryptoConfig.breakMode, init.breakMode)),
+        )
+        .orderBy(desc(cryptoConfig.createdAt))
+        .limit(1);
+      const keyring =
+        prior[0]?.keyring ??
+        (await serializeKeyMaterial(await generateEncryptionKeys(init.scheme, init.breakMode)));
       await db.update(cryptoConfig).set({ active: false }).where(eq(cryptoConfig.active, true));
       const inserted = await db
         .insert(cryptoConfig)
