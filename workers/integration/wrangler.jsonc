@@ -8,4 +8,17 @@
   // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Consumes trade-migration (the legit handoff) and re-mirrors the migrated leg to
+  // harvest-tap. Queues must exist: `wrangler queues create trade-migration-dlq`.
+  "queues": {
+    "producers": [{ "binding": "HARVEST_TAP", "queue": "harvest-tap" }],
+    "consumers": [
+      {
+        "queue": "trade-migration",
+        "max_batch_size": 10,
+        "max_retries": 3,
+        "dead_letter_queue": "trade-migration-dlq",
+      },
+    ],
+  },
 }

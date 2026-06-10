@@ -2,10 +2,27 @@
 // shape shared across workers and (later) the UI. PLAN §1/§4, /api-design skill.
 import { z } from "zod";
 
-/** Asset products live in Sentry; liability products live in Quantum. */
+// Products that ORIGINATE in each system — what you can POST. Sentry books assets,
+// Quantum books liabilities.
 export const SENTRY_PRODUCTS = ["loan", "bond"] as const;
 export const QUANTUM_PRODUCTS = ["fx", "irs", "ccs"] as const;
-export const PRODUCTS = [...SENTRY_PRODUCTS, ...QUANTUM_PRODUCTS] as const;
+
+// Products that only appear as MIGRATION TARGETS: the other system's taxonomy for
+// the same instrument (the integration translates product codes between vendors).
+// A Sentry asset keeps its asset class but is relabelled for Quantum, and vice versa.
+export const QUANTUM_TARGET_PRODUCTS = ["money-market", "security"] as const; // assets, in Quantum
+export const SENTRY_TARGET_PRODUCTS = [
+  "currency-forward",
+  "interest-rate-swap",
+  "cross-currency-swap",
+] as const; // liabilities, in Sentry
+
+export const PRODUCTS = [
+  ...SENTRY_PRODUCTS,
+  ...QUANTUM_PRODUCTS,
+  ...QUANTUM_TARGET_PRODUCTS,
+  ...SENTRY_TARGET_PRODUCTS,
+] as const;
 
 export const SYSTEMS = ["sentry", "quantum"] as const;
 export const ASSET_CLASSES = ["asset", "liability"] as const;
@@ -16,15 +33,35 @@ export type System = (typeof SYSTEMS)[number];
 export type AssetClass = (typeof ASSET_CLASSES)[number];
 export type TradeStatus = (typeof TRADE_STATUSES)[number];
 
-/** loans/bonds are assets (Sentry); fx/irs/ccs are liabilities (Quantum). */
+// Asset-class is intrinsic to the instrument and preserved across a migration —
+// loans/bonds (and their Quantum labels money-market/security) are assets; the rest
+// (fx/irs/ccs and their Sentry labels) are liabilities.
+const ASSET_PRODUCTS = new Set<string>([...SENTRY_PRODUCTS, ...QUANTUM_TARGET_PRODUCTS]);
+// Which system a product lives in (origins + the targets booked into each).
+const SENTRY_RESIDENT = new Set<string>([...SENTRY_PRODUCTS, ...SENTRY_TARGET_PRODUCTS]);
+
 export function productToAssetClass(product: Product): AssetClass {
-  return (SENTRY_PRODUCTS as readonly string[]).includes(product) ? "asset" : "liability";
+  return ASSET_PRODUCTS.has(product) ? "asset" : "liability";
 }
 
-/** The system that natively owns a product. */
+/** The system a product lives in (origins natively; targets once migrated in). */
 export function systemForProduct(product: Product): System {
-  return productToAssetClass(product) === "asset" ? "sentry" : "quantum";
+  return SENTRY_RESIDENT.has(product) ? "sentry" : "quantum";
 }
+
+/** Human-facing product labels for the UI. */
+export const PRODUCT_LABELS: Record<Product, string> = {
+  loan: "Loan",
+  bond: "Bond",
+  fx: "FX",
+  irs: "IRS",
+  ccs: "CCS",
+  "money-market": "Money Market",
+  security: "Security",
+  "currency-forward": "Currency Forward",
+  "interest-rate-swap": "Interest Rate Swaps",
+  "cross-currency-swap": "Cross Currency Swaps",
+};
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
