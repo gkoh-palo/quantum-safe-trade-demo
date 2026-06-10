@@ -1,6 +1,13 @@
 // Idempotent baseline seed (PLAN §4 / §10 reset). Re-running is safe: each row
 // carries a stable idempotency key, so a fresh deploy or demo reset never
 // double-inserts. Run with: pnpm --filter @qstd/db seed (needs NEON_DATABASE_URL).
+import { existsSync } from "node:fs";
+
+// Local dev: load packages/db/.env (gitignored) if present, so a plain
+// `pnpm --filter @qstd/db seed` picks up NEON_DATABASE_URL. No-op in CI, where the
+// env is already set and no .env exists. (drizzle-kit migrate auto-loads .env too.)
+if (existsSync(".env")) process.loadEnvFile(".env");
+
 import { productToAssetClass, systemForProduct } from "@qstd/shared";
 import type { Product, TradeInput, TradeStatus } from "@qstd/shared";
 import { getDb } from "./client.js";
