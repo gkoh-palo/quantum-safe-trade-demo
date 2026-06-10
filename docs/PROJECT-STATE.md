@@ -16,21 +16,21 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0–M5 merged + deployed live; M6 done — in review.** Backend loop complete (trades → sealed +
-harvested → migrated → era flip + break + scorecard) and the **pitch UI** is built: a React app
-served from `ui` with the live scorecard + the "Advance to the Quantum Era" lever. M4 was
-smoke-tested live (RSA broke, $150m exposed). Next: **M7** (admin UI + Better Auth gating the
-era + scheme controls; scheme/break-mode/CRQC controls + trade injector + inspector). Then
-**M8/M9** (crons + polish/reset).
+**M0–M6 merged + deployed live; M7 done — in review.** Full demo is built: pitch UI + the
+token-gated **admin control plane** (scheme/break-mode switch, CRQC slider, trade injector, raw
+inspector) at `/admin`. The scheme switch finally drives the hybrid-ML-KEM contrast from the UI.
+Next: **M7b** (Better Auth — replace the token gate with sessions), then **M8/M9** (cron feeds +
+polish/full-reset/demo rehearsal). The core build is essentially complete.
 
 **Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
 DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`. The pitch UI
 lives at the `ui` root; headless pitch still works:
 `POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
-**Deploy prerequisites (M5):** create the DLQ `wrangler queues create trade-migration-dlq`
-(the integration consumer references it) and set `NEON_DATABASE_URL` on **integration** (it now
-opens trades + writes mappings). The integration `trade-migration` consumer activates on deploy.
+**Deploy prerequisites (M7):** set `ADMIN_TOKEN` on **ui** (`wrangler secret put ADMIN_TOKEN
+--name qstd-ui`) — admin routes 401 without it. Service bindings ui→sentry/quantum auto-wire on
+deploy. Still outstanding from M5: set `NEON_DATABASE_URL` on **integration** (else migrations
+stay 0).
 
 ## Repo & access
 
@@ -88,15 +88,12 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 7. ✅ **M6 pitch UI** — React + Vite app served from `ui` (Workers Assets); BFF `GET /api/state`
    and `POST /api/break`; the era badge, scorecard, "Advance to the Quantum Era" lever, HNDL
    timeline, live wire feed. The deploy job builds `web/dist` before `wrangler deploy`.
-8. **M7**: admin UI + Better Auth — gate the era + scheme controls; add the scheme/break-mode/
-   CRQC controls + trade injector + inspector. (The era + break endpoints on `ui` are open until
-   then.)
-9. **M8/M9**: cron feeds (`trade-generator`, `epoch-tick`) + polish (full reset, captions, demo
-   rehearsal).
-
-**Outstanding for M4 deploy:** set the `NEON_DATABASE_URL` runtime secret on **ui** (the new
-EpochClock DO writes `crypto_config`). Everything else (queues, secrets on sentry/quantum/hacker,
-seed, migrations) is already in place; CI deploys from `main` automatically.
+8. ✅ **M7 admin control plane** — `/admin` view + `/api/admin/*` (scheme/break-mode, CRQC,
+   trade injector via service bindings, raw inspector), token-gated by `ADMIN_TOKEN`.
+9. **M7b**: Better Auth — replace the token gate with email+password sessions (Drizzle adapter,
+   generated tables, seeded admin), gate `/admin` + the admin routes.
+10. **M8/M9**: cron feeds (`trade-generator`, `epoch-tick`) + polish (full reset, captions, demo
+    rehearsal).
 
 ## Open questions (from PLAN §13)
 

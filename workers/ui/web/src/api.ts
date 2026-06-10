@@ -102,3 +102,88 @@ export const fmtMoney = (n: number): string => {
   if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}k`;
   return `$${n}`;
 };
+
+// --- admin (token-gated) ---------------------------------------------------
+
+const TOKEN_KEY = "qstd-admin-token";
+export const adminToken = {
+  get: (): string => localStorage.getItem(TOKEN_KEY) ?? "",
+  set: (t: string): void => localStorage.setItem(TOKEN_KEY, t),
+};
+
+const adminHeaders = (): Record<string, string> => ({
+  "content-type": "application/json",
+  "x-admin-token": adminToken.get(),
+});
+
+export interface InspectedPacket {
+  wireMessageId: string;
+  fromService: string;
+  toService: string;
+  scheme: string;
+  eraAtSend: string;
+  ciphertextPreview: string;
+  broken: boolean;
+  breakMethod: string | null;
+  recoveredPlaintext: unknown;
+}
+
+export interface InjectTrade {
+  system: "sentry" | "quantum";
+  product: string;
+  counterparty: string;
+  notional: number;
+  currency: string;
+  rate: number;
+  tenor: string;
+}
+
+const asResult = async (
+  res: Response,
+): Promise<{ ok: boolean; status: number; body: unknown }> => ({
+  ok: res.ok,
+  status: res.status,
+  body: await res.json().catch(() => null),
+});
+
+export const admin = {
+  setScheme: (scheme: string, breakMode: string) =>
+    fetch("/api/admin/scheme", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ scheme, breakMode }),
+    }).then(asResult),
+  setCrqc: (progress: number) =>
+    fetch("/api/admin/crqc", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ progress }),
+    }).then(asResult),
+  injectTrade: (trade: InjectTrade) =>
+    fetch("/api/admin/trade", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify(trade),
+    }).then(asResult),
+  inspect: async (): Promise<InspectedPacket[]> => {
+    const res = await fetch("/api/admin/inspect", {
+      headers: { "x-admin-token": adminToken.get() },
+    });
+    if (!res.ok) throw new Error(`inspect ${res.status}`);
+    return res.json();
+  },
+};
+
+export const ENCRYPTION_SCHEME_KEYS = [
+  "plaintext",
+  "sha256",
+  "hmac-sha256",
+  "rsa-oaep",
+  "ecdh-aes",
+  "hybrid-mlkem",
+] as const;
+
+export const SYSTEM_PRODUCTS: Record<"sentry" | "quantum", string[]> = {
+  sentry: ["loan", "bond"],
+  quantum: ["fx", "irs", "ccs"],
+};

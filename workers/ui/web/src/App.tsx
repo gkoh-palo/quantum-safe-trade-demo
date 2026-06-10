@@ -60,6 +60,9 @@ export function App() {
           <span className={`era-badge ${quantum ? "q" : "c"}`}>
             {quantum ? "⚛ QUANTUM ERA" : "🕒 TODAY (classical)"}
           </span>
+          <a className="navlink" href="/admin">
+            Admin →
+          </a>
         </div>
       </header>
 

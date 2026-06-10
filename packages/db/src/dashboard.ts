@@ -1,7 +1,7 @@
 // Read-side aggregation for the pitch UI BFF (PLAN §7): counts, the scorecard, and
 // recent trades + wire messages, in one round of queries.
 import { desc } from "drizzle-orm";
-import type { System, Trade } from "@qstd/shared";
+import type { System, Trade, WireEnvelope } from "@qstd/shared";
 import type { Database } from "./client.js";
 import type { Scorecard } from "./harvest.js";
 import { harvestedPacketsRepo, summarizeScorecard } from "./harvest.js";
@@ -59,4 +59,35 @@ export async function getDashboardState(db: Database, limit = 8): Promise<Dashbo
       createdAt: w.createdAt.toISOString(),
     })),
   };
+}
+
+/** Raw inspector (PLAN §7 admin): recent loot with ciphertext preview + recovery. */
+export interface InspectedPacket {
+  wireMessageId: string;
+  fromService: string;
+  toService: string;
+  scheme: string;
+  eraAtSend: string;
+  ciphertextPreview: string;
+  broken: boolean;
+  breakMethod: string | null;
+  recoveredPlaintext: unknown;
+}
+
+export async function inspectRecent(db: Database, limit = 12): Promise<InspectedPacket[]> {
+  const rows = await harvestedPacketsRepo(db).listRecent(limit);
+  return rows.map((r) => {
+    const env = (r.envelope ?? null) as WireEnvelope | null;
+    return {
+      wireMessageId: r.wireMessageId,
+      fromService: env?.fromService ?? "?",
+      toService: env?.toService ?? "?",
+      scheme: r.scheme ?? env?.scheme ?? "?",
+      eraAtSend: env?.eraAtSend ?? "?",
+      ciphertextPreview: (env?.ciphertextHex ?? "").slice(0, 48),
+      broken: r.broken,
+      breakMethod: r.breakMethod,
+      recoveredPlaintext: r.recoveredPlaintext,
+    };
+  });
 }
