@@ -69,6 +69,10 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
+- **2026-06-10 — Seed auto-loads `packages/db/.env`.** `pnpm --filter @qstd/db seed` runs as a
+  plain `tsx` script and didn't load any env file, so it failed with "NEON_DATABASE_URL is
+  required" even with a local `.env` present. The seed now `process.loadEnvFile(".env")` when
+  the file exists (local only; no-op in CI). `migrate` already auto-loads it via drizzle-kit.
 - **2026-06-09 — Deploy: bump CI to Node 22 for wrangler v4.** With wrangler v4 as a root
   devDependency, `wrangler-action`'s `pnpm exec wrangler --version` failed ("Wrangler requires
   Node.js v22") because CI ran Node 20 (`.nvmrc`), so the action fell back to wrangler 3.90.0 →
