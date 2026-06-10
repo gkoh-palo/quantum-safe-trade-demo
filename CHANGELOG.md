@@ -69,6 +69,11 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
+- **2026-06-09 — Deploy: bump CI to Node 22 for wrangler v4.** With wrangler v4 as a root
+  devDependency, `wrangler-action`'s `pnpm exec wrangler --version` failed ("Wrangler requires
+  Node.js v22") because CI ran Node 20 (`.nvmrc`), so the action fell back to wrangler 3.90.0 →
+  "Missing entry-point" again. Bumped `.nvmrc` → 22 (all CI jobs use `node-version-file`) and
+  `engines.node` → `>=22`. wrangler 4 needs Node ≥ 22.
 - **2026-06-09 — Deploy: workspace deps broke wrangler install.** Once `sentry`/`quantum`
   gained `workspace:^` deps (`@qstd/db`), `cloudflare/wrangler-action` died with
   `EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"` — it was running `npm i wrangler`
