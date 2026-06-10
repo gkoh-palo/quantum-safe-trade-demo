@@ -19,29 +19,34 @@ const sentryLoan: Trade = {
 };
 
 describe("Sentry⇄Quantum mapping", () => {
-  it("maps a Sentry asset to its Quantum liability counterpart", () => {
+  it("re-books a Sentry asset into Quantum's taxonomy, preserving its asset class", () => {
     const { target, direction, rulesVersion } = mapTrade(sentryLoan);
     expect(direction).toBe("sentry->quantum");
     expect(rulesVersion).toBe(MAPPING_RULES_VERSION);
     expect(target).toMatchObject({
       system: "quantum",
-      assetClass: "liability",
-      product: "irs", // loan → interest-rate swap
+      assetClass: "asset", // class is intrinsic — preserved across the migration
+      product: "money-market", // loan → Quantum's "Money Market"
       counterparty: "Helios Capital",
       notional: 25_000_000,
       currency: "USD",
     });
   });
 
-  it("maps a Quantum liability back to a Sentry asset", () => {
+  it("re-books a Quantum liability into Sentry's taxonomy, preserving its class", () => {
     const fx: Trade = { ...sentryLoan, system: "quantum", assetClass: "liability", product: "fx" };
     const { target, direction } = mapTrade(fx);
     expect(direction).toBe("quantum->sentry");
-    expect(target).toMatchObject({ system: "sentry", assetClass: "asset", product: "bond" });
+    expect(target).toMatchObject({
+      system: "sentry",
+      assetClass: "liability", // still a liability, just labelled for Sentry
+      product: "currency-forward", // fx → Sentry's "Currency Forward"
+    });
   });
 
-  it("loan ↔ irs round-trips", () => {
+  it("loan ↔ money-market round-trips", () => {
     const toQuantum = mapTrade(sentryLoan).target;
+    expect(toQuantum.product).toBe("money-market");
     const back = mapTrade({ ...sentryLoan, ...toQuantum, id: "x", createdAt: "x" }).target;
     expect(back.product).toBe("loan");
     expect(back.system).toBe("sentry");

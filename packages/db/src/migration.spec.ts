@@ -34,8 +34,8 @@ describe("integration open → map pipeline", () => {
     expect(direction).toBe("sentry->quantum");
     expect(target).toMatchObject({
       system: "quantum",
-      assetClass: "liability",
-      product: "ccs", // bond → cross-currency swap
+      assetClass: "asset", // bond is an asset — preserved across the migration
+      product: "security", // bond → Quantum's "Security"
       counterparty: "Northwind Treasury",
       notional: 50_000_000,
     });

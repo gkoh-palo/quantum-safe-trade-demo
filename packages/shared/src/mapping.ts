@@ -1,25 +1,30 @@
-// Sentry⇄Quantum migration mapping (PLAN §1/§8). The integration layer opens a
-// trade from one system and re-shapes it into its counterpart on the other.
-//
-// PLAN §13 Q2 (mapping fidelity) is left as a *representative* product map, not the
-// real cc-integrations asset/liability rules — enough to make the bidirectional
-// migration real and demonstrable. Swap in richer rules later without touching the
-// pipeline; the rulesVersion lets us tell them apart.
+// Sentry⇄Quantum migration mapping (PLAN §1/§8). The integration layer opens a trade
+// from one system and re-books it into the other — translating the product into that
+// system's taxonomy while **preserving the instrument's asset/liability class**. This
+// is a product-code translation between two vendor systems, not an economic transform.
 import type { Product, System, Trade, TradeInput } from "./trades.js";
 import { productToAssetClass } from "./trades.js";
 
-export const MAPPING_RULES_VERSION = "v1";
+export const MAPPING_RULES_VERSION = "v2";
 
 export type MigrationDirection = "sentry->quantum" | "quantum->sentry";
 
-// Each product maps to a counterpart on the other system. Assets (loan/bond) ⇄
-// liabilities (fx/irs/ccs). loan↔irs and bond↔ccs round-trip; fx maps inbound to bond.
+// Each product's label in the other system, for the same underlying instrument:
+//   Sentry assets → Quantum:   loan → money-market, bond → security
+//   Quantum liabilities → Sentry: fx → currency-forward, irs → interest-rate-swap,
+//                                  ccs → cross-currency-swap
+// Target products map back to their origin so a migrated trade round-trips.
 const PRODUCT_MAP: Record<Product, Product> = {
-  loan: "irs", // interest-bearing loan → interest-rate swap
-  bond: "ccs", // bond → cross-currency swap
-  fx: "bond",
-  irs: "loan",
-  ccs: "bond",
+  loan: "money-market",
+  bond: "security",
+  fx: "currency-forward",
+  irs: "interest-rate-swap",
+  ccs: "cross-currency-swap",
+  "money-market": "loan",
+  security: "bond",
+  "currency-forward": "fx",
+  "interest-rate-swap": "irs",
+  "cross-currency-swap": "ccs",
 };
 
 export interface MappingResult {

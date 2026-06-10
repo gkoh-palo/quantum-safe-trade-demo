@@ -13,8 +13,12 @@ everything currently lives under **[Unreleased]**.
 ### Added
 
 - **2026-06-10 — M5 integration mapper.** The legitimate Sentry⇄Quantum migration half. New
-  `@qstd/shared` mapping rules (`mapTrade` — a representative bidirectional product map,
-  loan↔irs / bond↔ccs / fx→bond, PLAN §13 Q2 left representative) + `parseCanonicalTrade`.
+  `@qstd/shared` mapping rules (`mapTrade`) + `parseCanonicalTrade`. A migration **re-books a
+  trade into the other system's product taxonomy while preserving its asset/liability class**
+  (a vendor product-code translation, not an economic transform): Sentry assets `loan →
+money-market`, `bond → security`; Quantum liabilities `fx → currency-forward`, `irs →
+interest-rate-swap`, `ccs → cross-currency-swap` — each round-trips. `PRODUCT_LABELS` added
+  for the UI.
   `@qstd/db` adds the `mappings` repo and `migrateFromEnvelope`: open the wire message (the
   integration legitimately holds the keys), map to the counterpart system, persist the target
   trade (idempotent on the source id) + a `mappings` link, then re-seal the migrated leg onto
