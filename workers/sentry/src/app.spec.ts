@@ -103,3 +103,67 @@ describe("qstd-sentry trades API", () => {
     expect((await json(res)).error.code).toBe("NOT_FOUND");
   });
 });
+
+// Phase 2: when an auth provider is injected, booking requires a session and records
+// booked_by; the ?mine blotter scopes to that user.
+class FakeAuth {
+  constructor(private user: { id: string; email: string; name: string } | null) {}
+  async handler() {
+    return new Response("auth", { status: 200 });
+  }
+  async requireUser() {
+    return this.user;
+  }
+  async signUp() {}
+}
+
+describe("qstd-sentry auth gating (Phase 2)", () => {
+  const repo = () => new InMemoryTradesRepository();
+  const book = (a: ReturnType<typeof createApp>) =>
+    a.request("/trades", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(bond),
+    });
+
+  it("rejects booking without a session (401)", async () => {
+    const app = createApp({ trades: repo(), auth: new FakeAuth(null) });
+    const res = await book(app);
+    expect(res.status).toBe(401);
+    expect((await json(res)).error.code).toBe("UNAUTHENTICATED");
+  });
+
+  it("books for a logged-in user and records booked_by", async () => {
+    const user = { id: "u-1", email: "demo@sentry.local", name: "Sentry Demo" };
+    const app = createApp({ trades: repo(), auth: new FakeAuth(user) });
+    const res = await book(app);
+    expect(res.status).toBe(201);
+    expect((await json(res)).bookedBy).toBe("u-1");
+  });
+
+  it("GET /trades?mine=1 scopes to the logged-in user", async () => {
+    const trades = repo();
+    const app = createApp({ trades, auth: new FakeAuth({ id: "u-1", email: "e", name: "n" }) });
+    await book(app); // booked by u-1
+    await trades.create({
+      system: "sentry",
+      assetClass: "asset",
+      product: "loan",
+      counterparty: "X",
+      notional: 1,
+      currency: "USD",
+      rate: 1,
+      tenor: "5Y",
+      tradeDate: "2026-01-01",
+      status: "active",
+      bookedBy: "someone-else",
+    });
+
+    const mine = await json(await app.request("/trades?mine=1"));
+    expect(mine.data).toHaveLength(1);
+    expect(mine.data[0].bookedBy).toBe("u-1");
+
+    const all = await json(await app.request("/trades"));
+    expect(all.data.length).toBe(2); // unscoped sees both
+  });
+});

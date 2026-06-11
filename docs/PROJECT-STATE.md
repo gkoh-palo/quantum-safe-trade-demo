@@ -21,14 +21,14 @@ crypto, wire+harvest, break+era, migration, pitch UI, token-gated admin control 
 self-running cron feeds — all green and verified in production (incl. the keyring-rotation fix,
 PR #13, that resolved the "$0 / RSA looks safe" bug).
 
-**Phase 2 queued (new requirements — see PLAN §14):** turn Sentry & Quantum into standalone
-products — **each serves its own trade-booking UI** behind **its own Better Auth** (separate
-login per system), so users can book trades and a separate team can layer a quantum-safe POC on
-either. Milestones **M10** (per-system Better Auth, namespaced tables), **M11** (Sentry booking
-UI), **M12** (Quantum booking UI). Not started. Booking reuses the existing `POST /trades`
-seal/emit path — no new backend pipeline. **Decisions locked (PLAN §14):** no roles (any
-logged-in user can book), per-user blotter via a new `trades.booked_by`, admin-seeded accounts
-(no self sign-up), HTTP API as the contract (no RPC). (Optional backlog: **M7b** admin Better
+**Phase 2 in progress (PLAN §14):** standalone products — each system serves its own booking UI
+behind its own Better Auth. **M10 done — in review:** `@qstd/auth` (per-system Better Auth,
+email+password, sign-up disabled), namespaced `sentry_*`/`quantum_*` tables + `trades.booked_by`
+(migration `0004`); sentry/quantum mount `/api/auth/*`, gate `POST /trades` (records `booked_by`),
+and support `GET /trades?mine=1`. Next: **M11** (Sentry booking UI), **M12** (Quantum booking UI)
+— each a React app served from its worker, login → book → per-user blotter, mirroring the `ui/web`
+build wiring. **Decisions locked (PLAN §14):** no roles, per-user blotter via `trades.booked_by`,
+admin-seeded accounts (no self sign-up), HTTP API contract (no RPC). (Optional backlog: **M7b** admin Better
 Auth, **M9** copy/rehearsal polish.)
 
 **Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
@@ -36,12 +36,15 @@ DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`.
 lives at the `ui` root; headless pitch still works:
 `POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
-**Deploy prerequisites (M8):** none new — the two Cron Triggers on `ui` auto-create on deploy
-and are no-ops until toggled on in `/admin` (Auto-mode card). Migration `0003` (auto_generate /
-auto_tick) applies via the migrate job. From M7: `ADMIN_TOKEN` on **ui** (`wrangler secret put
-ADMIN_TOKEN --name qstd-ui`) — admin routes 401 without it. Service bindings ui→sentry/quantum
-auto-wire on deploy. Still outstanding from M5: set `NEON_DATABASE_URL` on **integration** (else migrations
-stay 0).
+**Deploy prerequisites (M10):** migration `0004` (auth tables + `booked_by`) applies via the
+migrate job. Set per-system Better Auth secrets:
+`wrangler secret put BETTER_AUTH_SECRET --name qstd-sentry` (and `qstd-quantum`), and
+`wrangler secret put BETTER_AUTH_URL --name qstd-sentry` = `https://qstd-sentry.gkoh.workers.dev`
+(quantum → its own origin). Then seed demo users: put `NEON_DATABASE_URL` + `BETTER_AUTH_SECRET`
+in `packages/auth/.env` and run `pnpm --filter @qstd/auth seed` (creates `demo@sentry.local` /
+`demo@quantum.local`, password `password1234`). **Until secrets are set, `POST /trades` 401s.**
+Prior prereqs still stand: M8 crons no-op until toggled; `ADMIN_TOKEN` on `ui`; `NEON_DATABASE_URL`
+on all of sentry/quantum/hacker/ui/**integration**.
 
 ## Repo & access
 
@@ -107,11 +110,13 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
    `auto_generate` / `auto_tick` (migration `0003`), with admin toggles. Hands-off demo.
    **— Phase 1 (M0–M8) complete here. —**
 
-**Phase 2 (PLAN §14) — trade-booking product, not started:**
+**Phase 2 (PLAN §14) — trade-booking product:**
 
-10. **M10 per-system auth**: Better Auth on `sentry` **and** `quantum` (separate instances,
-    email+password, namespaced `sentry_*` / `quantum_*` Drizzle tables, `/api/auth/*` per worker,
-    seeded users). Gates M11/M12.
+10. ✅ **M10 per-system auth** — `@qstd/auth` (`createAuth`/`seedUser`); Better Auth on `sentry`
+    **and** `quantum` (separate instances, email+password, sign-up disabled, namespaced
+    `sentry_*` / `quantum_*` tables, migration `0004` + `trades.booked_by`); `/api/auth/*` mounted,
+    `POST /trades` gated + records `booked_by`, `GET /trades?mine=1`. **Live verification pending**
+    (set secrets + seed + test login — Better Auth runtime untested headlessly).
 11. **M11 Sentry booking UI**: React+Vite app on the `sentry` worker — login → book asset trades
     (loan/bond) + blotter; assets binding + deploy build (mirror the `ui/web` wiring).
 12. **M12 Quantum booking UI**: same on `quantum` for liability trades (fx/irs/ccs).

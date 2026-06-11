@@ -106,6 +106,8 @@ export interface TradeInput {
   tenor: string;
   tradeDate: string;
   status: TradeStatus;
+  /** Phase 2: the system user who booked it (per-user blotter); set from the session. */
+  bookedBy?: string | null;
 }
 
 /** A persisted trade, as returned over the wire. */

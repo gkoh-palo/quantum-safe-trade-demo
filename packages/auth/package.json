@@ -1,0 +1,19 @@
+{
+  "name": "@qstd/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@qstd/db": "workspace:^",
+    "better-auth": "^1.6.16"
+  },
+  "scripts": {
+    "seed": "tsx src/seed.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4"
+  }
+}
