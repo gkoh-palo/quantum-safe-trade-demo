@@ -1,4 +1,4 @@
-// Sentry⇄Quantum migration links (PLAN §4 mappings). One row per migrated trade,
+// Keystone⇄Helix migration links (PLAN §4 mappings). One row per migrated trade,
 // connecting the source trade to its counterpart on the other system.
 import { desc } from "drizzle-orm";
 import { MAPPING_RULES_VERSION } from "@qstd/shared";

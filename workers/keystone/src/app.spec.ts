@@ -39,11 +39,11 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
 // types:["node"]; tests assert on dynamic shapes, so read it as `any`.
 const json = async (res: Response): Promise<any> => res.json();
 
-describe("qstd-sentry trades API", () => {
+describe("qstd-keystone trades API", () => {
   it("GET /health", async () => {
     const res = await app.request("/health");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ service: "sentry", status: "ok" });
+    expect(await res.json()).toEqual({ service: "keystone", status: "ok" });
   });
 
   it("POST /trades creates an asset trade (201 + Location)", async () => {
@@ -52,7 +52,7 @@ describe("qstd-sentry trades API", () => {
     expect(res.headers.get("Location")).toMatch(/^\/trades\/[0-9a-f-]{36}$/);
     const trade = await json(res);
     expect(trade).toMatchObject({
-      system: "sentry",
+      system: "keystone",
       assetClass: "asset",
       product: "bond",
       currency: "USD", // normalised
@@ -85,7 +85,7 @@ describe("qstd-sentry trades API", () => {
     const res = await post(bond);
     const trade = await json(res);
     expect(wire.emitted).toHaveLength(1);
-    expect(wire.emitted[0]).toMatchObject({ id: trade.id, system: "sentry", product: "bond" });
+    expect(wire.emitted[0]).toMatchObject({ id: trade.id, system: "keystone", product: "bond" });
   });
 
   it("GET /trades returns the collection shape", async () => {
@@ -117,7 +117,7 @@ class FakeAuth {
   async signUp() {}
 }
 
-describe("qstd-sentry auth gating (Phase 2)", () => {
+describe("qstd-keystone auth gating (Phase 2)", () => {
   const repo = () => new InMemoryTradesRepository();
   const book = (a: ReturnType<typeof createApp>) =>
     a.request("/trades", {
@@ -134,7 +134,7 @@ describe("qstd-sentry auth gating (Phase 2)", () => {
   });
 
   it("books for a logged-in user and records booked_by", async () => {
-    const user = { id: "u-1", email: "demo@sentry.local", name: "Sentry Demo" };
+    const user = { id: "u-1", email: "demo@keystone.local", name: "Keystone Demo" };
     const app = createApp({ trades: repo(), auth: new FakeAuth(user) });
     const res = await book(app);
     expect(res.status).toBe(201);
@@ -167,7 +167,7 @@ describe("qstd-sentry auth gating (Phase 2)", () => {
     const app = createApp({ trades, auth: new FakeAuth({ id: "u-1", email: "e", name: "n" }) });
     await book(app); // booked by u-1
     await trades.create({
-      system: "sentry",
+      system: "keystone",
       assetClass: "asset",
       product: "loan",
       counterparty: "X",

@@ -1,6 +1,6 @@
 // Drizzle schema for the PLAN §4 data model + the Phase 2 Better Auth tables.
 // crypto_config / trades / mappings / wire_messages / harvested_packets / audit_log
-// (M1–M5), plus per-system Better Auth tables (sentry_* / quantum_*, M10/§11a).
+// (M1–M5), plus per-system Better Auth tables (keystone_* / helix_*, M10/§11a).
 import {
   boolean,
   customType,
@@ -53,7 +53,7 @@ export const cryptoConfig = pgTable("crypto_config", {
 /** Trades on either system (PLAN §4). */
 export const trades = pgTable("trades", {
   id: id(),
-  system: text("system").notNull(), // 'sentry' | 'quantum'
+  system: text("system").notNull(), // 'keystone' | 'helix'
   assetClass: text("asset_class").notNull(), // 'asset' | 'liability'
   product: text("product").notNull(), // loan|bond|fx|irs|ccs
   counterparty: text("counterparty").notNull(),
@@ -69,12 +69,12 @@ export const trades = pgTable("trades", {
   createdAt: createdAt(),
 });
 
-/** Sentry⇄Quantum migration links (PLAN §4; populated in M5). */
+/** Keystone⇄Helix migration links (PLAN §4; populated in M5). */
 export const mappings = pgTable("mappings", {
   id: id(),
   sourceTradeId: uuid("source_trade_id").notNull(),
   targetTradeId: uuid("target_trade_id"),
-  direction: text("direction").notNull(), // 'sentry->quantum' | 'quantum->sentry'
+  direction: text("direction").notNull(), // 'keystone->helix' | 'helix->keystone'
   rulesVersion: text("rules_version").notNull(),
   status: text("status").notNull().default("pending"),
   createdAt: createdAt(),
@@ -122,7 +122,7 @@ export const auditLog = pgTable("audit_log", {
 });
 
 // --- Better Auth tables, namespaced per system (Phase 2 / PLAN §11a) ---------
-// Sentry and Quantum each run their own Better Auth instance against this one DB,
+// Keystone and Helix each run their own Better Auth instance against this one DB,
 // so each system's user/session/account/verification tables are prefixed. Columns
 // match Better Auth's core schema (property names are the Better Auth field names;
 // DB column names are snake_case). @qstd/auth maps these into each auth instance.
@@ -179,31 +179,31 @@ function authTableSet(prefix: string) {
   return { user, session, account, verification };
 }
 
-const sentryAuthTables = authTableSet("sentry");
-const quantumAuthTables = authTableSet("quantum");
+const keystoneAuthTables = authTableSet("keystone");
+const helixAuthTables = authTableSet("helix");
 
 // Exported individually so drizzle-kit picks them up.
-export const sentryUser = sentryAuthTables.user;
-export const sentrySession = sentryAuthTables.session;
-export const sentryAccount = sentryAuthTables.account;
-export const sentryVerification = sentryAuthTables.verification;
-export const quantumUser = quantumAuthTables.user;
-export const quantumSession = quantumAuthTables.session;
-export const quantumAccount = quantumAuthTables.account;
-export const quantumVerification = quantumAuthTables.verification;
+export const keystoneUser = keystoneAuthTables.user;
+export const keystoneSession = keystoneAuthTables.session;
+export const keystoneAccount = keystoneAuthTables.account;
+export const keystoneVerification = keystoneAuthTables.verification;
+export const helixUser = helixAuthTables.user;
+export const helixSession = helixAuthTables.session;
+export const helixAccount = helixAuthTables.account;
+export const helixVerification = helixAuthTables.verification;
 
 /** The four-table Better Auth schema for a system, keyed by Better Auth model name. */
 export const authSchema = {
-  sentry: {
-    user: sentryUser,
-    session: sentrySession,
-    account: sentryAccount,
-    verification: sentryVerification,
+  keystone: {
+    user: keystoneUser,
+    session: keystoneSession,
+    account: keystoneAccount,
+    verification: keystoneVerification,
   },
-  quantum: {
-    user: quantumUser,
-    session: quantumSession,
-    account: quantumAccount,
-    verification: quantumVerification,
+  helix: {
+    user: helixUser,
+    session: helixSession,
+    account: helixAccount,
+    verification: helixVerification,
   },
 } as const;

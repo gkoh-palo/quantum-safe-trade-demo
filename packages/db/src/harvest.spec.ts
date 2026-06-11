@@ -8,7 +8,7 @@ import type { BreakOutcome, HarvestBreakRepo, UnattemptedPacket } from "./harves
 import { sealedToEnvelope } from "./wire.js";
 
 const TRADE: TradeInput = {
-  system: "sentry",
+  system: "keystone",
   assetClass: "asset",
   product: "bond",
   counterparty: "Northwind Treasury",
@@ -34,7 +34,7 @@ class FakeBreakRepo implements HarvestBreakRepo {
 async function packetFor(scheme: EncryptionScheme, mode: BreakMode) {
   const keys = await generateEncryptionKeys(scheme, mode);
   const sealed = await seal(scheme, canonicalTradePayload(TRADE), keys);
-  const envelope = sealedToEnvelope("wm-1", "sentry", "quantum", "classical", sealed);
+  const envelope = sealedToEnvelope("wm-1", "keystone", "helix", "classical", sealed);
   const repo = new FakeBreakRepo([{ id: "p1", scheme, envelope }]);
   return { keys, repo };
 }
@@ -116,12 +116,12 @@ describe("break engine (runBreakBatch)", () => {
       {
         id: "good",
         scheme: "rsa-oaep",
-        envelope: sealedToEnvelope("wm-good", "sentry", "quantum", "classical", good),
+        envelope: sealedToEnvelope("wm-good", "keystone", "helix", "classical", good),
       },
       {
         id: "orphan",
         scheme: "rsa-oaep",
-        envelope: sealedToEnvelope("wm-orphan", "sentry", "quantum", "classical", orphan),
+        envelope: sealedToEnvelope("wm-orphan", "keystone", "helix", "classical", orphan),
       },
     ]);
 

@@ -10,8 +10,8 @@ import { createAuth, seedUser } from "./index.js";
 import type { AuthSystem } from "./index.js";
 
 const SEED: Record<AuthSystem, { name: string; email: string; password: string }[]> = {
-  sentry: [{ name: "Sentry Demo", email: "demo@sentry.local", password: "password1234" }],
-  quantum: [{ name: "Quantum Demo", email: "demo@quantum.local", password: "password1234" }],
+  keystone: [{ name: "Keystone Demo", email: "demo@keystone.local", password: "password1234" }],
+  helix: [{ name: "Helix Demo", email: "demo@helix.local", password: "password1234" }],
 };
 
 async function main(): Promise<void> {
@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   if (!secret) throw new Error("BETTER_AUTH_SECRET is required to seed users");
 
   const db = getDb(url);
-  for (const system of ["sentry", "quantum"] as const) {
+  for (const system of ["keystone", "helix"] as const) {
     const auth = createAuth({ db, system, secret, baseURL: "http://localhost", allowSignUp: true });
     for (const user of SEED[system]) {
       const result = await seedUser(auth, user);

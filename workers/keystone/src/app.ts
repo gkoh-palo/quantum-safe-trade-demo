@@ -1,12 +1,12 @@
-// qstd-quantum HTTP app — liability-trade CRUD (FX, IRS, CCS) + Better Auth (Phase 2).
-// Same shape as the Sentry app, scoped to liability products. Built from injected deps
-// so it stays testable. When auth is present, /api/auth/* is mounted and booking
-// requires a logged-in user; the trade records booked_by.
+// qstd-keystone HTTP app — asset-trade CRUD (loans, bonds) + Better Auth (Phase 2).
+// Built from injected deps (TradesRepository, optional WireEmitter, optional
+// AuthProvider) so it stays testable. When auth is present, /api/auth/* is mounted
+// and booking (POST /trades) requires a logged-in user; the trade records booked_by.
 import { Hono } from "hono";
 import type { AuthProvider } from "@qstd/auth";
 import type { TradesRepository, WireEmitter } from "@qstd/db";
 import {
-  QUANTUM_PRODUCTS,
+  KEYSTONE_PRODUCTS,
   clampLimit,
   errorBody,
   makeCreateTradeSchema,
@@ -14,8 +14,8 @@ import {
 } from "@qstd/shared";
 import type { Collection, Trade } from "@qstd/shared";
 
-const SYSTEM = "quantum" as const;
-const CreateTrade = makeCreateTradeSchema(QUANTUM_PRODUCTS);
+const SYSTEM = "keystone" as const;
+const CreateTrade = makeCreateTradeSchema(KEYSTONE_PRODUCTS);
 
 /** The Workers Assets binding — structural so we don't pull in @cloudflare/workers-types. */
 export interface AssetFetcher {
@@ -24,13 +24,18 @@ export interface AssetFetcher {
 
 export interface AppDeps {
   trades: TradesRepository;
+  /** Optional: seals + fans the new trade out to the queues. Omitted in pure CRUD tests. */
   wire?: WireEmitter;
+  /** Optional: per-system Better Auth. When present, booking requires a session. */
   auth?: AuthProvider;
-  /** Shared secret letting trusted internal callers (ui injector / cron) bypass the
-   * user-auth gate via an `x-internal-token` header (PLAN §14). */
-  internalToken?: string;
   /** Optional: the static booking app. When present, unmatched routes serve the SPA. */
   assets?: AssetFetcher;
+  /**
+   * Optional shared secret for trusted internal callers (the ui injector + cron
+   * trade-generator reach POST /trades via service bindings, with no user session).
+   * A matching `x-internal-token` header bypasses the user-auth gate (PLAN §14).
+   */
+  internalToken?: string;
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -38,6 +43,7 @@ export function createApp(deps: AppDeps): Hono {
 
   app.get("/health", (c) => c.json({ service: SYSTEM, status: "ok" }));
 
+  // Better Auth owns /api/auth/* (login, logout, session, …).
   if (deps.auth) {
     app.all("/api/auth/*", (c) => deps.auth!.handler(c.req.raw));
   }
@@ -65,6 +71,7 @@ export function createApp(deps: AppDeps): Hono {
     if (!created) return c.json(trade, 200); // idempotent replay — don't re-emit
 
     if (deps.wire) {
+      // Emission is a side effect: a failure must not lose the persisted trade.
       try {
         await deps.wire.emit(trade);
       } catch (err) {
@@ -77,6 +84,7 @@ export function createApp(deps: AppDeps): Hono {
 
   app.get("/trades", async (c) => {
     const limit = clampLimit(c.req.query("limit"));
+    // ?mine=1 → the logged-in user's own blotter (Phase 2).
     let bookedBy: string | undefined;
     if (c.req.query("mine") && deps.auth) {
       const user = await deps.auth.requireUser(c.req.raw);

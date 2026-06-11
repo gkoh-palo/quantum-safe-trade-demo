@@ -6,7 +6,7 @@ import { envelopeToSealed, sealedToEnvelope } from "./wire.js";
 
 const source: Trade = {
   id: "22222222-2222-2222-2222-222222222222",
-  system: "sentry",
+  system: "keystone",
   assetClass: "asset",
   product: "bond",
   counterparty: "Northwind Treasury",
@@ -25,17 +25,17 @@ describe("integration open → map pipeline", () => {
   it("opens a sealed trade and maps it across systems", async () => {
     const keys = await generateEncryptionKeys("rsa-oaep", "projected");
     const sealed = await seal("rsa-oaep", canonicalTradePayload(source), keys);
-    const envelope = sealedToEnvelope("wm-1", "sentry", "quantum", "classical", sealed);
+    const envelope = sealedToEnvelope("wm-1", "keystone", "helix", "classical", sealed);
 
     const opened = parseCanonicalTrade(await open(envelopeToSealed(envelope), keys));
     expect(opened.id).toBe(source.id);
 
     const { target, direction } = mapTrade(opened);
-    expect(direction).toBe("sentry->quantum");
+    expect(direction).toBe("keystone->helix");
     expect(target).toMatchObject({
-      system: "quantum",
+      system: "helix",
       assetClass: "asset", // bond is an asset — preserved across the migration
-      product: "security", // bond → Quantum's "Security"
+      product: "security", // bond → Helix's "Security"
       counterparty: "Northwind Treasury",
       notional: 50_000_000,
     });

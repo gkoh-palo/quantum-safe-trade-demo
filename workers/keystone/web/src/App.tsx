@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { auth, trades, fmtMoney, type SessionUser, type Trade } from "./api";
 
-// System-specific config — Quantum's booking UI (M12) is this same app with a
+// System-specific config — Helix's booking UI (M12) is this same app with a
 // different SYSTEM block (liability products).
 const SYSTEM = {
-  name: "Sentry",
+  name: "Keystone",
   tagline: "Asset trade booking",
   products: [
     ["loan", "Loan"],
     ["bond", "Bond"],
   ] as const,
-  demoEmail: "demo@sentry.local",
+  demoEmail: "demo@keystone.local",
 };
 
 export function App() {

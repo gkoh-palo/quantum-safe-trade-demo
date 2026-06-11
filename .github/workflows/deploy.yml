@@ -88,7 +88,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Build worker assets (if any)
-        # Any worker that serves a Vite app (ui, sentry, quantum) has a `build` script
+        # Any worker that serves a Vite app (ui, keystone, helix) has a `build` script
         # that compiles its web/dist; run it before wrangler deploy.
         working-directory: ${{ matrix.dir }}
         run: |

@@ -13,8 +13,8 @@ export interface AdminEnv {
   readonly ADMIN_TOKEN?: string;
   readonly INTERNAL_TOKEN?: string;
   readonly EPOCH: DurableObjectNamespace<EpochClock>;
-  readonly SENTRY: Fetcher;
-  readonly QUANTUM: Fetcher;
+  readonly KEYSTONE: Fetcher;
+  readonly HELIX: Fetcher;
 }
 
 const BREAK_MODES: readonly BreakMode[] = ["genuine", "projected"];
@@ -95,7 +95,7 @@ export async function handleAdmin(
   // goes through the real seal + emit path.
   if (pathname === "/api/admin/trade" && method === "POST") {
     const body = (await request.json().catch(() => ({}))) as { system?: string };
-    const target = body.system === "quantum" ? env.QUANTUM : env.SENTRY;
+    const target = body.system === "helix" ? env.HELIX : env.KEYSTONE;
     const headers: Record<string, string> = { "content-type": "application/json" };
     if (env.INTERNAL_TOKEN) headers["x-internal-token"] = env.INTERNAL_TOKEN;
     const res = await target.fetch(

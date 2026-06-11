@@ -242,7 +242,7 @@ function InjectPanel({
   flash: (ok: boolean, text: string) => void;
   onInjected: () => void;
 }) {
-  const [system, setSystem] = useState<"sentry" | "quantum">("sentry");
+  const [system, setSystem] = useState<"keystone" | "helix">("keystone");
   const [product, setProduct] = useState("bond");
   const [counterparty, setCounterparty] = useState("Acme Corp");
   const [notional, setNotional] = useState(25_000_000);
@@ -268,13 +268,13 @@ function InjectPanel({
         className="field"
         value={system}
         onChange={(e) => {
-          const s = e.target.value as "sentry" | "quantum";
+          const s = e.target.value as "keystone" | "helix";
           setSystem(s);
           setProduct(SYSTEM_PRODUCTS[s][0]!);
         }}
       >
-        <option value="sentry">Sentry (assets)</option>
-        <option value="quantum">Quantum (liabilities)</option>
+        <option value="keystone">Keystone (assets)</option>
+        <option value="helix">Helix (liabilities)</option>
       </select>
       <select className="field" value={product} onChange={(e) => setProduct(e.target.value)}>
         {SYSTEM_PRODUCTS[system].map((p) => (

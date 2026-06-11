@@ -17,8 +17,8 @@
   // The admin trade-injector forwards to the originating worker so injected trades go
   // through the real seal + emit path. ADMIN_TOKEN is a runtime secret (wrangler secret).
   "services": [
-    { "binding": "SENTRY", "service": "qstd-sentry" },
-    { "binding": "QUANTUM", "service": "qstd-quantum" },
+    { "binding": "KEYSTONE", "service": "qstd-keystone" },
+    { "binding": "HELIX", "service": "qstd-helix" },
   ],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EpochClock"] }],
   // Cron feeds (auto-mode gated): trade-generator every 1m, epoch-tick every 2m.

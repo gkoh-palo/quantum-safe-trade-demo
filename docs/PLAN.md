@@ -1,7 +1,7 @@
 # Build Plan — Quantum-Safe Trade Migration Demo
 
 > Goal: a live, deployed simulation proving the Harvest-Now-Decrypt-Later threat against
-> a Sentry↔Quantum trade integration, with a presenter-controllable PQC defence.
+> a Keystone↔Helix trade integration, with a presenter-controllable PQC defence.
 
 ---
 
@@ -9,14 +9,14 @@
 
 | Actor                 | Role                                           | Asset classes | Notes                                                                                |
 | --------------------- | ---------------------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
-| **Sentry**            | Vendor system, **asset** trades                | Loans, Bonds  | Source/target of migration                                                           |
-| **Quantum**           | Vendor system, **liability** trades            | FX, IRS, CCS  | Source/target of migration                                                           |
+| **Keystone**          | Vendor system, **asset** trades                | Loans, Bonds  | Source/target of migration                                                           |
+| **Helix**             | Vendor system, **liability** trades            | FX, IRS, CCS  | Source/target of migration                                                           |
 | **Integration Layer** | Maps & migrates trades both directions         | —             | Re-shapes + re-encrypts payloads; the richest interception point                     |
 | **Eve (Hacker)**      | Passive wiretap — _harvest now, decrypt later_ | —             | Mirrors every wire message to a loot store; breaks it once the "quantum era" arrives |
 
 **Plot beats the presenter controls:**
 
-1. Trades flow Sentry ↔ Quantum (auto-generated + manual).
+1. Trades flow Keystone ↔ Helix (auto-generated + manual).
 2. Every inter-service message is encrypted under the **current scheme** and mirrored to Eve's archive.
 3. Today (classical era) Eve can't read protected traffic — she just stores it.
 4. Presenter flips **"Advance to the Quantum Era."**
@@ -26,10 +26,10 @@
    - **hybrid X25519 + ML-KEM** → break **fails** → traffic stays opaque
 6. Dashboards quantify the damage: % harvested, % broken, $ notional exposed, counterparties leaked.
 
-> **Naming note:** in the real cc-integrations codebase "Sentry→Quantum" is the asset
-> integration flow. Here both are treated as independent vendor systems (Sentry=assets,
-> Quantum=liabilities) so the migration is genuinely bidirectional. The pun — that the
-> _Quantum_ system is undone by _quantum_ computing — is intentional and good pitch theatre.
+> **Naming note:** in the real cc-integrations codebase "Keystone→Helix" is the asset
+> integration flow. Here both are treated as independent vendor systems (Keystone=assets,
+> Helix=liabilities) so the migration is genuinely bidirectional. The pun — that the
+> _Helix_ system is undone by _helix_ computing — is intentional and good pitch theatre.
 
 ---
 
@@ -44,9 +44,9 @@
         ┌───────────────────────────────────┼───────────────────────────────────┐
         ▼                                    ▼                                    ▼
 ┌───────────────┐   wire msg (enc)  ┌────────────────────┐  wire msg (enc) ┌───────────────┐
-│ sentry-worker │ ────────────────▶ │ integration-worker │ ───────────────▶│ quantum-worker│
+│ keystone-worker │ ────────────────▶ │ integration-worker │ ───────────────▶│ helix-worker│
 │ assets        │ ◀──────────────── │ map + re-encrypt   │ ◀───────────────│ liabilities   │
-│ loans / bonds │   via Queue       │ (Sentry⇄Quantum)   │   via Queue     │ FX / IRS / CCS│
+│ loans / bonds │   via Queue       │ (Keystone⇄Helix)   │   via Queue     │ FX / IRS / CCS│
 └──────┬────────┘                   └─────────┬──────────┘                 └──────┬────────┘
        │  passive tap (mirror ciphertext)     │  passive tap                      │
        └──────────────────────┬───────────────┴───────────────┬───────────────────┘
@@ -62,7 +62,7 @@
    Neon Postgres: trades · mappings · wire_messages · harvested_packets · crypto_config · audit_log
 ```
 
-**Why 5 Workers** (3 services + UI + hacker): the "3 webservices" are sentry/quantum/integration.
+**Why 5 Workers** (3 services + UI + hacker): the "3 webservices" are keystone/helix/integration.
 `hacker` and `ui` are infrastructure for the demo, not part of the simulated business flow.
 
 **Modelling the wiretap honestly.** Cloudflare Service Bindings can't be truly
@@ -77,21 +77,21 @@ travels on the wire.
 
 | Resource          | Name              | Purpose                                                                           |
 | ----------------- | ----------------- | --------------------------------------------------------------------------------- |
-| Worker            | `sentry`          | Asset-trade REST API **+ booking UI + Better Auth**; encrypts + emits wire msgs   |
-| Worker            | `quantum`         | Liability-trade REST API **+ booking UI + Better Auth**; receives migrated trades |
+| Worker            | `keystone`        | Asset-trade REST API **+ booking UI + Better Auth**; encrypts + emits wire msgs   |
+| Worker            | `helix`           | Liability-trade REST API **+ booking UI + Better Auth**; receives migrated trades |
 | Worker            | `integration`     | Queue consumer; maps + re-encrypts + forwards                                     |
 | Worker            | `hacker`          | Harvest tap + break engine                                                        |
 | Worker            | `ui`              | Pitch + admin React app + BFF/control endpoints                                   |
-| Queue             | `trade-migration` | Async Sentry⇄Quantum handoff (producer: sentry/quantum, consumer: integration)    |
+| Queue             | `trade-migration` | Async Keystone⇄Helix handoff (producer: keystone/helix, consumer: integration)    |
 | Queue             | `harvest-tap`     | Fan-out of ciphertext to the hacker (decouples capture from break)                |
-| Durable Object    | `EpochClock`      | Single global era state (classical/quantum) + CRQC progress %                     |
+| Durable Object    | `EpochClock`      | Single global era state (classical/helix) + CRQC progress %                       |
 | Durable Object    | `HarvestArchive`  | Append-only loot log, break orchestration, per-key cache                          |
 | Cron              | `*/1 * * * *`     | `trade-generator` — emits random trades to keep the feed live                     |
 | Cron              | `*/2 * * * *`     | `epoch-tick` — advances CRQC progress when in auto mode                           |
 | Hyperdrive (opt.) | `neon`            | Pooled Postgres access from Workers                                               |
 
 Secrets via `wrangler secret`: `NEON_DATABASE_URL`, `ADMIN_TOKEN`, per-service `SIGNING_SEED`,
-and per-system `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` (Phase 2 — sentry & quantum each run
+and per-system `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` (Phase 2 — keystone & helix each run
 their own auth; see §11/§14).
 
 ---
@@ -102,7 +102,7 @@ their own auth; see §11/§14).
 -- current security posture (single active row, versioned for audit)
 crypto_config(
   id, active boolean, scheme text,            -- see §5 scheme matrix
-  era text,                                    -- 'classical' | 'quantum'
+  era text,                                    -- 'classical' | 'helix'
   crqc_progress int,                           -- 0..100, drives the break
   kem_public_key bytea, kem_secret_ref text,   -- ML-KEM keypair handle
   classical_pub bytea, classical_priv_size int,-- RSA/ECDH (priv kept server-side)
@@ -110,7 +110,7 @@ crypto_config(
 )
 
 trades(
-  id uuid, system text,                        -- 'sentry' | 'quantum'
+  id uuid, system text,                        -- 'keystone' | 'helix'
   asset_class text,                            -- 'asset' | 'liability'
   product text,                                -- loan|bond|fx|irs|ccs
   counterparty text, notional numeric, currency text,
@@ -122,7 +122,7 @@ trades(
 
 mappings(
   id uuid, source_trade_id uuid, target_trade_id uuid,
-  direction text,                              -- 'sentry->quantum' | 'quantum->sentry'
+  direction text,                              -- 'keystone->helix' | 'helix->keystone'
   rules_version text, status text, created_at
 )
 
@@ -154,10 +154,10 @@ Neon driver: `@neondatabase/serverless` + `drizzle-orm/neon-http`. Migrations wi
 
 ## 5. Configurable security methods (the core knob)
 
-Admin selects the **active scheme**; it governs how `integration`/`sentry`/`quantum`
+Admin selects the **active scheme**; it governs how `integration`/`keystone`/`helix`
 protect each wire message. Each scheme has a defined _break outcome_ in the quantum era.
 
-| Scheme key     | Construction                             | Confidentiality     | Quantum-safe?       | Quantum-era outcome                            |
+| Scheme key     | Construction                             | Confidentiality     | Helix-safe?         | Helix-era outcome                              |
 | -------------- | ---------------------------------------- | ------------------- | ------------------- | ---------------------------------------------- |
 | `plaintext`    | none                                     | ❌ none             | n/a                 | readable immediately (baseline shock)          |
 | `sha256`       | hash of payload only                     | ❌ none (integrity) | n/a                 | teaches **hash ≠ encryption** — still readable |
@@ -191,13 +191,13 @@ quantum-safe-trade-demo/
 ├─ pnpm-workspace.yaml
 ├─ turbo.json
 ├─ packages/
-│  ├─ shared/                    # types, trade schemas (zod), Sentry⇄Quantum mapping rules
+│  ├─ shared/                    # types, trade schemas (zod), Keystone⇄Helix mapping rules
 │  ├─ crypto/                    # scheme registry: seal()/open()/sign()/verify()/break()
 │  └─ db/                        # drizzle schema, migrations, seed, neon client
 ├─ workers/
-│  ├─ sentry/                    # asset-trade API + Better Auth, serves its own booking UI
+│  ├─ keystone/                    # asset-trade API + Better Auth, serves its own booking UI
 │  │  └─ web/                    # Vite + React: login + book asset trades (Phase 2)
-│  ├─ quantum/                   # liability-trade API + Better Auth, serves its own booking UI
+│  ├─ helix/                   # liability-trade API + Better Auth, serves its own booking UI
 │  │  └─ web/                    # Vite + React: login + book liability trades (Phase 2)
 │  ├─ integration/              # queue consumer, mapper, re-encrypt + forward
 │  ├─ hacker/                    # HarvestArchive DO + break engine + "decrypt later" API
@@ -218,11 +218,11 @@ hacker agree on `seal/open/sign/verify/break` for each scheme key in §5.
 
 The demo has two presenter-facing views in the `ui` worker (pitch + admin). **Phase 2 (§14)**
 adds a third surface: a **trade-booking UI on each business system**, so real users log in and
-book trades directly into Sentry and Quantum.
+book trades directly into Keystone and Helix.
 
 ### Pitch view (`/pitch`) — cinematic, presenter-facing
 
-- **Live wire** — animated packets flowing Sentry ⇄ Integration ⇄ Quantum; Eve's tap
+- **Live wire** — animated packets flowing Keystone ⇄ Integration ⇄ Helix; Eve's tap
   pulling a copy aside into a growing "loot pile."
 - **HNDL timeline** — the signature visual: a capture marker at _today_ connected by a
   long line to a break marker in the _quantum era_; the gap is labelled
@@ -247,11 +247,11 @@ SSE/poll for the live feed. Recharts for the scorecard, framer-motion for packet
 Each business worker serves **its own** React + Vite app from its own Workers Assets binding,
 gated by that system's **own Better Auth** (§11):
 
-- **Sentry booking UI** (served at the `sentry` worker root) — log in, then list and **book
+- **Keystone booking UI** (served at the `keystone` worker root) — log in, then list and **book
   asset trades** (loans, bonds): a real create-trade form (the same Zod-validated `POST /trades`)
   plus a list/blotter of the user's trades. Every booked trade flows through the normal
   seal → wire → harvest → migrate pipeline, so the pitch view stays live with genuine traffic.
-- **Quantum booking UI** (served at the `quantum` worker root) — the same, for **liability
+- **Helix booking UI** (served at the `helix` worker root) — the same, for **liability
   trades** (FX, IRS, CCS).
 
 These are deliberately standalone so a separate team can build a further quantum-safe POC layer
@@ -262,16 +262,16 @@ book, see your blotter.
 
 ## 8. Request/data flow (one migrated trade)
 
-1. `POST /trades` on **sentry** (Bond, $50m, CounterpartyX).
-2. sentry persists trade, builds canonical payload, **`crypto.seal(payload, scheme)`**,
+1. `POST /trades` on **keystone** (Bond, $50m, CounterpartyX).
+2. keystone persists trade, builds canonical payload, **`crypto.seal(payload, scheme)`**,
    writes a `wire_messages` row, **enqueues** to `trade-migration`, and **mirrors
    ciphertext** to `harvest-tap`.
 3. **hacker** consumes `harvest-tap` → `HarvestArchive` DO appends → `harvested_packets` row
    (`broken=false`). Eve now holds the ciphertext forever.
 4. **integration** consumes `trade-migration` → `crypto.open()` (it legitimately holds keys)
-   → maps Bond → the Quantum-side representation (`mappings` row) → **re-seals** →
-   forwards to **quantum** (+ mirrors to tap again).
-5. **quantum** opens, persists the liability-side trade, acks.
+   → maps Bond → the Helix-side representation (`mappings` row) → **re-seals** →
+   forwards to **helix** (+ mirrors to tap again).
+5. **helix** opens, persists the liability-side trade, acks.
 6. Presenter advances era → **hacker** break engine iterates `harvested_packets`, applies
    the §5 outcome per `scheme`, writes `recovered_plaintext` / `failed`, updates scorecard.
 
@@ -282,11 +282,11 @@ book, see your blotter.
 | #   | Milestone          | Deliverable                                                          |
 | --- | ------------------ | -------------------------------------------------------------------- |
 | M0  | Scaffolding        | workspaces, turbo, 5 `wrangler.toml`, CI, Neon project created       |
-| M1  | Data + trades      | drizzle schema + migrations + seed; sentry & quantum CRUD            |
+| M1  | Data + trades      | drizzle schema + migrations + seed; keystone & helix CRUD            |
 | M2  | Crypto registry    | `packages/crypto` with all §5 schemes: seal/open/sign/verify + tests |
 | M3  | Wire + harvest     | wire_messages, Queues, harvest-tap, HarvestArchive DO                |
 | M4  | Break + era        | EpochClock DO, break engine (genuine + projected), scorecard query   |
-| M5  | Integration mapper | Sentry⇄Quantum mapping rules, bidirectional migration via queue      |
+| M5  | Integration mapper | Keystone⇄Helix mapping rules, bidirectional migration via queue      |
 | M6  | Pitch UI           | live wire, HNDL timeline, the switch, scorecard                      |
 | M7  | Admin UI           | scheme/break-mode/CRQC controls, trade injector, inspector           |
 | M8  | Deploy + crons     | service bindings, secrets, cron feeds, end-to-end on Cloudflare      |
@@ -301,11 +301,11 @@ Turns the two business systems into standalone, authenticated, UI-bearing produc
 separate team can layer a further quantum-safe POC on. M0–M8 are complete and deployed; M10–M12
 are the new scope.
 
-| #   | Milestone          | Deliverable                                                                                                                                                                 |
-| --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M10 | Per-system auth    | **Better Auth** on `sentry` **and** `quantum` — separate instances, email+pwd, namespaced Drizzle tables (`sentry_*` / `quantum_*`), `/api/auth/*` per worker, seeded users |
-| M11 | Sentry booking UI  | React+Vite app on `sentry`: login → book asset trades (loan/bond) + personal blotter; gated by Sentry auth; assets binding + deploy build                                   |
-| M12 | Quantum booking UI | Same on `quantum` for liability trades (fx/irs/ccs)                                                                                                                         |
+| #   | Milestone           | Deliverable                                                                                                                                                                 |
+| --- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M10 | Per-system auth     | **Better Auth** on `keystone` **and** `helix` — separate instances, email+pwd, namespaced Drizzle tables (`keystone_*` / `helix_*`), `/api/auth/*` per worker, seeded users |
+| M11 | Keystone booking UI | React+Vite app on `keystone`: login → book asset trades (loan/bond) + personal blotter; gated by Keystone auth; assets binding + deploy build                               |
+| M12 | Helix booking UI    | Same on `helix` for liability trades (fx/irs/ccs)                                                                                                                           |
 
 (Optional, pre-existing backlog: **M7b** — give the `ui` admin its own Better Auth instead of
 the `ADMIN_TOKEN` break-glass.)
@@ -337,18 +337,18 @@ persists to Neon). There are now **two distinct auth concerns**:
 
 ### 11a. Per-system user auth (Phase 2 — the new requirement)
 
-Each business system owns its **own** Better Auth so users log in to **Sentry** and **Quantum**
+Each business system owns its **own** Better Auth so users log in to **Keystone** and **Helix**
 **separately** (the decision: separate auth per system — stronger isolation between the two
 "vendor" systems, and each is independently consumable by another team).
 
-- **Where it lives:** in the `sentry` and `quantum` workers themselves. Each owns `/api/auth/*`
+- **Where it lives:** in the `keystone` and `helix` workers themselves. Each owns `/api/auth/*`
   and gates its booking UI + its mutating `POST /trades`. This changes the earlier posture where
   business workers only trusted Service-Binding calls — they now also authenticate their own
   browser users. (Internal hops — integration's migrate, the ui injector — still go via Service
   Bindings and bypass user auth.)
 - **Adapter:** Better Auth **Drizzle adapter** against the shared Neon DB. Because both run on
-  one database, **namespace each system's tables** (`sentry_user`/`sentry_session`/… and
-  `quantum_user`/…) — Better Auth's `usePlural`/table-name config, generated via the CLI and
+  one database, **namespace each system's tables** (`keystone_user`/`keystone_session`/… and
+  `helix_user`/…) — Better Auth's `usePlural`/table-name config, generated via the CLI and
   folded into our Drizzle migrations so one `migrate` provisions everything.
 - **Method:** email + password, with seeded demo users per system.
 - **Session:** cookie-based, scoped to each worker's origin; protected routes check
@@ -394,7 +394,7 @@ token + the migration DB URL.
 
 1. **Break mode default** — ship `genuine` (real live factoring, small keys) or `projected`
    (real keys, simulated countdown) as the out-of-the-box pitch default?
-2. **Mapping fidelity** — how realistic should Sentry⇄Quantum field mapping be? (Mirror the
+2. **Mapping fidelity** — how realistic should Keystone⇄Helix field mapping be? (Mirror the
    real cc-integrations asset/liability mappings, or a representative subset?)
 3. **Branding** — neutral demo branding, or skinned for a specific prospect?
 4. ✅ **Phase 2 — user/role model** → **no roles.** Any logged-in user can book on the system.
@@ -415,15 +415,15 @@ quantum-safe POC layer** on either one independently.
 
 **Requirements (as stated):**
 
-1. Sentry **and** Quantum each have a **trade-booking user interface**.
+1. Keystone **and** Helix each have a **trade-booking user interface**.
 2. Both are **loginable via Better Auth**.
 3. Logged-in users can **interact with both systems to book trades**.
 
 **Decisions taken** (see §7 booking UIs, §9 M10–M12, §11a, §13 Q4–Q7):
 
 - **UI placement:** each business worker **serves its own** booking UI (standalone systems), not
-  a shared front-end. → `workers/sentry/web`, `workers/quantum/web`.
-- **Auth:** **separate Better Auth per system** (Sentry login ≠ Quantum login), namespaced
+  a shared front-end. → `workers/keystone/web`, `workers/helix/web`.
+- **Auth:** **separate Better Auth per system** (Keystone login ≠ Helix login), namespaced
   Drizzle tables on the shared Neon DB.
 - **Roles:** none — **any logged-in user can book** on that system.
 - **Blotter:** **per-user** — `trades.booked_by` records the booker; the UI shows the user's own

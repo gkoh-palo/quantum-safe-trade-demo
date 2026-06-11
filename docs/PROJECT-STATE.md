@@ -9,8 +9,8 @@
 
 ## What this is
 
-A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Sentry (assets)
-⇄ Quantum (liabilities) trade integration, with configurable crypto and a post-quantum
+A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Keystone (assets)
+⇄ Helix (liabilities) trade integration, with configurable crypto and a post-quantum
 (ML-KEM) defence. Built for a pre-sales pitch + an admin control plane. Full story:
 [README](../README.md), full design: [PLAN.md](PLAN.md).
 
@@ -21,31 +21,31 @@ crypto, wire+harvest, break+era, migration, pitch UI, token-gated admin control 
 self-running cron feeds — all green and verified in production (incl. the keyring-rotation fix,
 PR #13, that resolved the "$0 / RSA looks safe" bug).
 
-**Phase 2 (PLAN §14) — COMPLETE.** Sentry & Quantum are now standalone, authenticated,
-UI-bearing products. **M10** `@qstd/auth` (per-system Better Auth, namespaced `sentry_*`/`quantum_*`
-tables + `trades.booked_by`, migration `0004`) — verified live. **M11** Sentry booking UI (served
-from the `sentry` worker; login → book loan/bond → per-user blotter) + the `INTERNAL_TOKEN` bypass
+**Phase 2 (PLAN §14) — COMPLETE.** Keystone & Helix are now standalone, authenticated,
+UI-bearing products. **M10** `@qstd/auth` (per-system Better Auth, namespaced `keystone_*`/`helix_*`
+tables + `trades.booked_by`, migration `0004`) — verified live. **M11** Keystone booking UI (served
+from the `keystone` worker; login → book loan/bond → per-user blotter) + the `INTERNAL_TOKEN` bypass
 so the cron/injector survive the gate — verified live (login/book/injector all confirmed). **M12**
-Quantum booking UI (same config-driven app on `quantum`, fx/irs/ccs) — in review. **Decisions
+Helix booking UI (same config-driven app on `helix`, fx/irs/ccs) — in review. **Decisions
 (PLAN §14):** no roles, per-user blotter via `trades.booked_by`,
 admin-seeded accounts (no self sign-up), HTTP API contract (no RPC). (Optional backlog: **M7b** admin Better
 Auth, **M9** copy/rehearsal polish.)
 
-**Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
+**Live ops state:** queues created; `NEON_DATABASE_URL` on keystone/helix/hacker/ui;
 DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`. The pitch UI
 lives at the `ui` root; headless pitch still works:
 `POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
-**Deploy prerequisites (M11):** the deploy job now builds `workers/sentry/web/dist` (generic
-asset-build step). **Set `INTERNAL_TOKEN` (same value) on `ui`, `sentry`, and `quantum`** —
+**Deploy prerequisites (M11):** the deploy job now builds `workers/keystone/web/dist` (generic
+asset-build step). **Set `INTERNAL_TOKEN` (same value) on `ui`, `keystone`, and `helix`** —
 `wrangler secret put INTERNAL_TOKEN --name qstd-<w>` — else the cron/injector hit the now-gated
-`POST /trades` and 401. The Sentry booking UI is served at the `sentry` worker root
-(`https://qstd-sentry.gkoh.workers.dev`).
+`POST /trades` and 401. The Keystone booking UI is served at the `keystone` worker root
+(`https://qstd-keystone.gkoh.workers.dev`).
 
 **M10 prereqs (done live 2026-06-11):** migration `0004` applied; `BETTER_AUTH_SECRET` +
-`BETTER_AUTH_URL` set on sentry & quantum; demo users seeded (`demo@sentry.local` /
-`demo@quantum.local`, `password1234`). Prior prereqs still stand: M8 crons no-op until toggled;
-`ADMIN_TOKEN` on `ui`; `NEON_DATABASE_URL` on all of sentry/quantum/hacker/ui/**integration**.
+`BETTER_AUTH_URL` set on keystone & helix; demo users seeded (`demo@keystone.local` /
+`demo@helix.local`, `password1234`). Prior prereqs still stand: M8 crons no-op until toggled;
+`ADMIN_TOKEN` on `ui`; `NEON_DATABASE_URL` on all of keystone/helix/hacker/ui/**integration**.
 
 ## Repo & access
 
@@ -57,17 +57,17 @@ asset-build step). **Set `INTERNAL_TOKEN` (same value) on `ui`, `sentry`, and `q
 
 ## Decisions locked (don't re-litigate)
 
-- **Both vendors are real systems:** Sentry = assets (loans/bonds), Quantum = liabilities
+- **Both vendors are real systems:** Keystone = assets (loans/bonds), Helix = liabilities
   (FX/IRS/CCS); integration layer maps/migrates **both directions**.
-- **5 Cloudflare Workers:** `sentry`, `quantum`, `integration` (business) + `hacker`, `ui`.
+- **5 Cloudflare Workers:** `keystone`, `helix`, `integration` (business) + `hacker`, `ui`.
   Service Bindings + Queues + Durable Objects (`EpochClock`, `HarvestArchive`) + Cron.
 - **Real PQC:** `@noble/post-quantum` (ML-KEM-768 / ML-DSA-65) + `@noble/curves` + WebCrypto.
   Two honest break modes: `genuine` (small keys, real live break) vs `projected` (real keys,
   simulated countdown). **Never claim to break a real PQC scheme.**
 - **DB:** Neon Postgres + Drizzle (`neon-http` driver; `Pool` only for transactions).
 - **Auth:** admin (`/admin` in `ui`) is `ADMIN_TOKEN`-gated today (M7). **Phase 2:** separate
-  Better Auth per business system (Sentry login ≠ Quantum login), namespaced Drizzle tables.
-- **Frontend:** React + Vite. `ui` serves Pitch + Admin; **Phase 2:** `sentry` & `quantum` each
+  Better Auth per business system (Keystone login ≠ Helix login), namespaced Drizzle tables.
+- **Frontend:** React + Vite. `ui` serves Pitch + Admin; **Phase 2:** `keystone` & `helix` each
   serve their own booking UI from their own Workers Assets binding.
 - **Env/CD:** one environment, deployed straight from `main`. pnpm, Node 22, ESM, TS strict.
 
@@ -91,10 +91,10 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 2. ✅ **M2 `packages/crypto`** — `SchemeRegistry` (`seal/open/break` + `sign/verify`) for every
    PLAN §5 scheme, both break modes, round-trip + PQC-resistance tests. (`forge()` → M4.)
 3. ✅ **M1 data + trades** — `@qstd/db` schema (all §4 tables) + `0000_*` migration + idempotent
-   seed; `@qstd/shared` trade domain; `sentry`/`quantum` trade CRUD (Hono + injected repo).
+   seed; `@qstd/shared` trade domain; `keystone`/`helix` trade CRUD (Hono + injected repo).
    Better Auth tables deferred to M7.
 4. ✅ **M3 wire + harvest (capture half)** — `crypto_config` keyring + `wire_messages` /
-   `harvested_packets` repos; sentry/quantum seal + fan out to `trade-migration` + `harvest-tap`;
+   `harvested_packets` repos; keystone/helix seal + fan out to `trade-migration` + `harvest-tap`;
    hacker consumes `harvest-tap` into the `HarvestArchive` DO. Migration `0001`.
 5. ✅ **M4 break + era** — `EpochClock` DO (era/CRQC, mirrored to `crypto_config`); break engine
    (`runBreakBatch`, hacker `POST /break`); scorecard (hacker `GET /scorecard`); migration `0002`.
@@ -113,21 +113,21 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 
 **Phase 2 (PLAN §14) — trade-booking product:**
 
-10. ✅ **M10 per-system auth** — `@qstd/auth` (`createAuth`/`seedUser`); Better Auth on `sentry`
-    **and** `quantum` (separate instances, email+password, sign-up disabled, namespaced
-    `sentry_*` / `quantum_*` tables, migration `0004` + `trades.booked_by`); `/api/auth/*` mounted,
+10. ✅ **M10 per-system auth** — `@qstd/auth` (`createAuth`/`seedUser`); Better Auth on `keystone`
+    **and** `helix` (separate instances, email+password, sign-up disabled, namespaced
+    `keystone_*` / `helix_*` tables, migration `0004` + `trades.booked_by`); `/api/auth/*` mounted,
     `POST /trades` gated + records `booked_by`, `GET /trades?mine=1`. **Verified live** (2026-06-11):
-    secrets set on both workers, demo users seeded (`demo@sentry.local` / `demo@quantum.local`),
+    secrets set on both workers, demo users seeded (`demo@keystone.local` / `demo@helix.local`),
     login → gated booking → cross-system isolation all confirmed. (Seed fix: better-auth blocks
     server `signUpEmail` under `disableSignUp`, so the seed uses an `allowSignUp: true` instance;
     runtime workers stay gated.)
-11. ✅ **M11 Sentry booking UI** — `workers/sentry/web` (React+Vite, served via the `sentry`
+11. ✅ **M11 Keystone booking UI** — `workers/keystone/web` (React+Vite, served via the `keystone`
     worker's assets binding): login → book loan/bond → per-user blotter (`?mine=1`). Generic build
     wiring (`workers/*/web`, deploy builds any worker with a `build` script). Plus the
     `INTERNAL_TOKEN` bypass so the cron/injector survive the gate. **Needs live verify** after
     setting `INTERNAL_TOKEN` (book via the UI; confirm cron/injector restored).
-12. ✅ **M12 Quantum booking UI** — `workers/quantum/web` (the Sentry app with a Quantum `SYSTEM`
-    block + distinct accent), served from the `quantum` worker; login → book fx/irs/ccs → blotter.
+12. ✅ **M12 Helix booking UI** — `workers/helix/web` (the Keystone app with a Helix `SYSTEM`
+    block + distinct accent), served from the `helix` worker; login → book fx/irs/ccs → blotter.
     No new secrets (INTERNAL_TOKEN + Better Auth already set). **— Phase 2 (M10–M12) complete. —**
 
 **Optional backlog:** **M7b** (give `ui` admin its own Better Auth instead of `ADMIN_TOKEN`);
@@ -137,7 +137,7 @@ archive").
 ## Open questions (from PLAN §13)
 
 1. Break-mode default for the pitch: `genuine` vs `projected`?
-2. Sentry⇄Quantum mapping fidelity: mirror real cc-integrations mappings, or a subset?
+2. Keystone⇄Helix mapping fidelity: mirror real cc-integrations mappings, or a subset?
 3. Branding: neutral or skinned for a specific prospect?
 
 ## How to resume a session

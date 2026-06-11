@@ -1,11 +1,11 @@
 {
-  "name": "@qstd/sentry",
+  "name": "@qstd/keystone",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "build": "pnpm --filter @qstd/sentry-web build",
+    "build": "pnpm --filter @qstd/keystone-web build",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types"
   },

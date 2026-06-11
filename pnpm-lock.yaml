@@ -113,16 +113,7 @@ importers:
         specifier: workspace:^
         version: link:../../packages/shared
 
-  workers/integration:
-    dependencies:
-      '@qstd/db':
-        specifier: workspace:^
-        version: link:../../packages/db
-      '@qstd/shared':
-        specifier: workspace:^
-        version: link:../../packages/shared
-
-  workers/quantum:
+  workers/helix:
     dependencies:
       '@qstd/auth':
         specifier: workspace:^
@@ -137,7 +128,7 @@ importers:
         specifier: ^4.12.25
         version: 4.12.25
 
-  workers/quantum/web:
+  workers/helix/web:
     dependencies:
       react:
         specifier: ^18.3.1
@@ -159,7 +150,16 @@ importers:
         specifier: ^5.4.11
         version: 5.4.21(@types/node@22.19.20)
 
-  workers/sentry:
+  workers/integration:
+    dependencies:
+      '@qstd/db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@qstd/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
+
+  workers/keystone:
     dependencies:
       '@qstd/auth':
         specifier: workspace:^
@@ -174,7 +174,7 @@ importers:
         specifier: ^4.12.25
         version: 4.12.25
 
-  workers/sentry/web:
+  workers/keystone/web:
     dependencies:
       react:
         specifier: ^18.3.1

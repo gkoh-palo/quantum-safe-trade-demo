@@ -5,7 +5,7 @@ watches the **Pitch** view on the main screen. Times are approximate.
 
 > For setup, URLs, logins, and how to use the booking UIs, see the **[Playbook](PLAYBOOK.md)**.
 > This file is just the narrated script. (Phase 2: in Act 1 you can also **book a Bond live from
-> the Sentry booking UI** instead of the admin injector — same pipeline, more tangible.)
+> the Keystone booking UI** instead of the admin injector — same pipeline, more tangible.)
 
 ---
 
@@ -17,7 +17,7 @@ watches the **Pitch** view on the main screen. Times are approximate.
 
 ## Act 1 — "This is how your trades move today" (90s)
 
-- Point at the **live wire**: Bonds/Loans leaving **Sentry**, FX/IRS/CCS leaving **Quantum**,
+- Point at the **live wire**: Bonds/Loans leaving **Keystone**, FX/IRS/CCS leaving **Helix**,
   meeting in the **Integration Layer** that maps and migrates between them.
 - **Inject a trade** from Admin: Bond, $50m, "CounterpartyX." Watch it travel.
 - Note the small figure tapping the line — **Eve**. "She's passive. She can't break anything.

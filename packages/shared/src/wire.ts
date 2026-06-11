@@ -21,7 +21,7 @@ export interface WireEnvelope {
   plaintextSha256Hex: string;
 }
 
-/** `trade-migration` queue: the legitimate Sentry⇄Quantum handoff (consumed in M5). */
+/** `trade-migration` queue: the legitimate Keystone⇄Helix handoff (consumed by integration). */
 export interface MigrationMessage {
   envelope: WireEnvelope;
 }

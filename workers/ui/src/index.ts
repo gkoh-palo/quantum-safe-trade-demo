@@ -27,8 +27,8 @@ interface Env {
   readonly INTERNAL_TOKEN?: string;
   readonly EPOCH: DurableObjectNamespace<EpochClock>;
   readonly ASSETS: Fetcher;
-  readonly SENTRY: Fetcher;
-  readonly QUANTUM: Fetcher;
+  readonly KEYSTONE: Fetcher;
+  readonly HELIX: Fetcher;
 }
 
 const epoch = (env: Env) => env.EPOCH.get(env.EPOCH.idFromName("global"));
@@ -39,8 +39,8 @@ const TICK_CRON = "*/2 * * * *"; // epoch-tick
 // Generate one random trade through the originating worker's seal + emit path.
 // Sends the internal token so the system feed bypasses the booking auth gate.
 async function generateTrade(env: Env): Promise<void> {
-  const system: System = Math.random() < 0.5 ? "sentry" : "quantum";
-  const target = system === "sentry" ? env.SENTRY : env.QUANTUM;
+  const system: System = Math.random() < 0.5 ? "keystone" : "helix";
+  const target = system === "keystone" ? env.KEYSTONE : env.HELIX;
   await target.fetch(
     new Request("https://svc/trades", {
       method: "POST",

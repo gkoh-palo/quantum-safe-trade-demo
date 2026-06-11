@@ -27,7 +27,7 @@ export default {
     return new Response("Not Found", { status: 404 });
   },
 
-  // trade-migration consumer: the legitimate Sentry⇄Quantum handoff.
+  // trade-migration consumer: the legitimate Keystone⇄Helix handoff.
   async queue(batch: MessageBatch<MigrationMessage>, env: Env): Promise<void> {
     const db = getDb(env.NEON_DATABASE_URL);
     for (const message of batch.messages) {

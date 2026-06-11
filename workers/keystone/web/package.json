@@ -1,5 +1,5 @@
 {
-  "name": "@qstd/quantum-web",
+  "name": "@qstd/keystone-web",
   "version": "0.0.0",
   "private": true,
   "type": "module",

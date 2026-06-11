@@ -1,4 +1,4 @@
-// qstd-sentry — vendor system for **asset** trades (loans, bonds). Trade CRUD via
+// qstd-keystone — vendor system for **asset** trades (loans, bonds). Trade CRUD via
 // the Hono app in ./app.ts, backed by the Drizzle trades repository over Neon. On
 // create, trades are sealed and fanned out to the trade-migration + harvest-tap
 // queues via the WireEmitter (PLAN §8). Queue bindings are typed structurally
@@ -24,14 +24,14 @@ export default {
     const db = getDb(env.NEON_DATABASE_URL);
     const wire = createWireEmitter({
       db,
-      fromService: "sentry",
-      toService: "quantum",
+      fromService: "keystone",
+      toService: "helix",
       migration: env.MIGRATION,
       harvest: env.HARVEST_TAP,
     });
     const auth = createAuth({
       db,
-      system: "sentry",
+      system: "keystone",
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
     });

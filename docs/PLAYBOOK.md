@@ -7,18 +7,18 @@ How to **use the services** (Part 1) and **run a demo** (Part 2). For the archit
 
 ## Surfaces & URLs
 
-| Surface             | URL                                      | What it is                                              |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------- |
-| **Pitch view**      | `https://qstd-ui.gkoh.workers.dev/`      | The cinematic HNDL story — public, no login             |
-| **Admin control**   | `https://qstd-ui.gkoh.workers.dev/admin` | Presenter control plane — token-gated                   |
-| **Sentry booking**  | `https://qstd-sentry.gkoh.workers.dev/`  | Book **asset** trades (loan/bond) — login required      |
-| **Quantum booking** | `https://qstd-quantum.gkoh.workers.dev/` | Book **liability** trades (FX/IRS/CCS) — login required |
+| Surface              | URL                                       | What it is                                              |
+| -------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| **Pitch view**       | `https://qstd-ui.gkoh.workers.dev/`       | The cinematic HNDL story — public, no login             |
+| **Admin control**    | `https://qstd-ui.gkoh.workers.dev/admin`  | Presenter control plane — token-gated                   |
+| **Keystone booking** | `https://qstd-keystone.gkoh.workers.dev/` | Book **asset** trades (loan/bond) — login required      |
+| **Helix booking**    | `https://qstd-helix.gkoh.workers.dev/`    | Book **liability** trades (FX/IRS/CCS) — login required |
 
 ## Credentials
 
 - **Booking logins** (admin-seeded; no public sign-up):
-  - Sentry — `demo@sentry.local` / `password1234`
-  - Quantum — `demo@quantum.local` / `password1234`
+  - Keystone — `demo@keystone.local` / `password1234`
+  - Helix — `demo@helix.local` / `password1234`
 - **Admin token** — the `x-admin-token` value. It is the `ADMIN_TOKEN` secret (kept in
   `packages/db/.env` locally / `wrangler secret` in prod). Paste it once into the Admin token
   field; it's stored in your browser. Never commit or screen-share it.
@@ -31,16 +31,16 @@ How to **use the services** (Part 1) and **run a demo** (Part 2). For the archit
 
 # Part 1 — Using the services
 
-## A. Book a trade (Sentry / Quantum booking UIs)
+## A. Book a trade (Keystone / Helix booking UIs)
 
 Each system is a standalone product with its **own** login.
 
-1. Open the **Sentry** (assets) or **Quantum** (liabilities) URL.
-2. **Sign in** with that system's account (logins are separate — a Sentry session does **not**
-   work on Quantum).
+1. Open the **Keystone** (assets) or **Helix** (liabilities) URL.
+2. **Sign in** with that system's account (logins are separate — a Keystone session does **not**
+   work on Helix).
 3. **Book a trade** — pick a product, counterparty, notional, currency, rate, tenor → **Book
    trade**.
-   - Sentry products: **Loan, Bond**. Quantum products: **FX, IRS, CCS**.
+   - Keystone products: **Loan, Bond**. Helix products: **FX, IRS, CCS**.
 4. Your booking appears in **My blotter** (your own trades only).
 5. **Sign out** from the top bar.
 
@@ -52,7 +52,7 @@ shows up in the pitch view and is subject to the break engine.
 
 Public, read-only, auto-refreshing. Shows:
 
-- **Era badge** — _Classical_ (today) or _Quantum_ (CRQC has arrived).
+- **Era badge** — _Classical_ (today) or _Helix_ (CRQC has arrived).
 - **Headline metrics** — trades booked, harvested by Eve, migrations, **notional exposed**.
 - **⚛ Advance to the Quantum Era** — the lever: jumps to the quantum era **and** runs Eve's
   break pass in one click. **Reset to Today** rewinds (re-locks the loot for a repeatable demo).
@@ -68,8 +68,8 @@ Paste the admin token, then:
 | Control              | What it does                                                                        |
 | -------------------- | ----------------------------------------------------------------------------------- |
 | **Active scheme**    | Set the encryption scheme + **break mode** (`genuine` / `projected`). Rotates keys. |
-| **CRQC countdown**   | Slide 0–100% and **Set** — drives `projected`-mode breaks (100% = quantum arrives). |
-| **Inject a trade**   | Book a trade into Sentry/Quantum via service binding (no login needed — internal).  |
+| **CRQC countdown**   | Slide 0–100% and **Set** — drives `projected`-mode breaks (100% = helix arrives).   |
+| **Inject a trade**   | Book a trade into Keystone/Helix via service binding (no login needed — internal).  |
 | **Auto-mode (cron)** | Toggle **Trade generator** (a trade/min) and **CRQC auto-tick** (countdown climbs). |
 | **Clear archive**    | Wipe all trades / wire / loot for a clean slate (start-over button).                |
 | **Raw inspector**    | Eve's archive: per packet, ciphertext preview and (post-break) recovered plaintext. |
@@ -77,7 +77,7 @@ Paste the admin token, then:
 ## D. What happens when you book (the pipeline)
 
 `POST /trades` → seal under the active scheme → write `wire_messages` → fan out to
-**trade-migration** (legit Sentry⇄Quantum handoff) **and** **harvest-tap** (Eve's mirror). The
+**trade-migration** (legit Keystone⇄Helix handoff) **and** **harvest-tap** (Eve's mirror). The
 hacker worker archives the ciphertext; advancing the era runs the break engine over it. Booking
 requires a user session; internal callers (admin injector, cron) carry an `x-internal-token`
 and bypass the login gate (their trades have no `booked_by`).
@@ -96,13 +96,13 @@ Two-screen setup: **Pitch** on the projector, **Admin** on your laptop. Full nar
 3. Set **Active scheme = `plaintext`**, **CRQC = 0%**, era shows _Classical_.
 4. Turn on **Auto-mode → Trade generator** so the wire is alive when you walk up. (Leave
    CRQC auto-tick **off** — you want to pull that lever yourself.)
-5. Have a **Sentry booking tab** logged in (`demo@sentry.local`) ready for the live-booking beat.
+5. Have a **Keystone booking tab** logged in (`demo@keystone.local`) ready for the live-booking beat.
 
 ## The run (~8 min)
 
 | Beat                               | Do this                                                                                                                          | The line                                                                        |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **1. Today's flow**                | Point at the live wire. **Book a Bond ($50m) live from the Sentry UI.** Watch it travel; note Eve tapping the line.              | "She's passive. She just keeps a copy."                                         |
+| **1. Today's flow**                | Point at the live wire. **Book a Bond ($50m) live from the Keystone UI.** Watch it travel; note Eve tapping the line.            | "She's passive. She just keeps a copy."                                         |
 | **2. Looks safe**                  | Admin → scheme **`rsa-oaep`**. Open the **inspector** on a captured packet → ciphertext. Let the loot pile grow.                 | "Every trade archived. Cheap, undetectable. This is **Harvest Now**."           |
 | **3. Decrypt later**               | Pull **⚛ Advance to the Quantum Era**. RSA packets flip 🔒→🔓; **exposed notional** climbs; inspector shows recovered plaintext. | "Captured years ago, broken today. The math just caught up."                    |
 | **4. Turn on PQC**                 | **Reset to Today** → scheme **`hybrid-mlkem`** → book again → **Advance** again. Packets **stay 🔒**; scheme is **PQ-safe**.     | "Same attacker, same archive, same quantum computer. One library's difference." |
@@ -152,6 +152,6 @@ Two-screen setup: **Pitch** on the projector, **Admin** on your laptop. Full nar
 - **Booking returns 401** — you're not logged in (or `BETTER_AUTH_*` secrets aren't set on that
   worker). Sign in; check secrets.
 - **Cron/injector trades stop appearing** — `INTERNAL_TOKEN` must be set (same value) on
-  `ui`, `sentry`, `quantum`.
+  `ui`, `keystone`, `helix`.
 - **Scorecard shows everything "protected / $0" under RSA** — stale loot from a key rotation;
   **Clear archive** and re-book.

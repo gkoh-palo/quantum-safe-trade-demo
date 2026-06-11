@@ -1,4 +1,4 @@
-// qstd-quantum — vendor system for **liability** trades (FX, IRS, CCS). Trade CRUD
+// qstd-helix — vendor system for **liability** trades (FX, IRS, CCS). Trade CRUD
 // via the Hono app in ./app.ts over Neon. On create, trades are sealed and fanned
 // out to the trade-migration + harvest-tap queues via the WireEmitter (PLAN §8).
 import { createAuth } from "@qstd/auth";
@@ -22,14 +22,14 @@ export default {
     const db = getDb(env.NEON_DATABASE_URL);
     const wire = createWireEmitter({
       db,
-      fromService: "quantum",
-      toService: "sentry",
+      fromService: "helix",
+      toService: "keystone",
       migration: env.MIGRATION,
       harvest: env.HARVEST_TAP,
     });
     const auth = createAuth({
       db,
-      system: "quantum",
+      system: "helix",
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
     });

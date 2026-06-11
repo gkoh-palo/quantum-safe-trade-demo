@@ -1,11 +1,11 @@
 {
-  "name": "@qstd/quantum",
+  "name": "@qstd/helix",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "build": "pnpm --filter @qstd/quantum-web build",
+    "build": "pnpm --filter @qstd/helix-web build",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types"
   },
