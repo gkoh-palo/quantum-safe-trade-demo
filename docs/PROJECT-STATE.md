@@ -115,8 +115,11 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
 10. ✅ **M10 per-system auth** — `@qstd/auth` (`createAuth`/`seedUser`); Better Auth on `sentry`
     **and** `quantum` (separate instances, email+password, sign-up disabled, namespaced
     `sentry_*` / `quantum_*` tables, migration `0004` + `trades.booked_by`); `/api/auth/*` mounted,
-    `POST /trades` gated + records `booked_by`, `GET /trades?mine=1`. **Live verification pending**
-    (set secrets + seed + test login — Better Auth runtime untested headlessly).
+    `POST /trades` gated + records `booked_by`, `GET /trades?mine=1`. **Verified live** (2026-06-11):
+    secrets set on both workers, demo users seeded (`demo@sentry.local` / `demo@quantum.local`),
+    login → gated booking → cross-system isolation all confirmed. (Seed fix: better-auth blocks
+    server `signUpEmail` under `disableSignUp`, so the seed uses an `allowSignUp: true` instance;
+    runtime workers stay gated.)
 11. **M11 Sentry booking UI**: React+Vite app on the `sentry` worker — login → book asset trades
     (loan/bond) + blotter; assets binding + deploy build (mirror the `ui/web` wiring).
 12. **M12 Quantum booking UI**: same on `quantum` for liability trades (fx/irs/ccs).

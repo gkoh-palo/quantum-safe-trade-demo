@@ -28,6 +28,12 @@ export interface AuthOptions {
   secret: string;
   /** This worker's public origin, e.g. https://qstd-sentry.gkoh.workers.dev */
   baseURL: string;
+  /**
+   * Allow email/password sign-up. Default false (public registration is disabled —
+   * accounts are admin-seeded). The seed script sets this true on its own instance to
+   * create users; the runtime workers leave it false. Login is never gated by this.
+   */
+  allowSignUp?: boolean;
 }
 
 /** The slice of Better Auth the workers use — injectable, so handlers are testable. */
@@ -43,7 +49,7 @@ export interface AuthProvider {
 export function createAuth(opts: AuthOptions): AuthProvider {
   const auth = betterAuth({
     database: drizzleAdapter(opts.db, { provider: "pg", schema: authSchema[opts.system] }),
-    emailAndPassword: { enabled: true, disableSignUp: true },
+    emailAndPassword: { enabled: true, disableSignUp: !opts.allowSignUp },
     secret: opts.secret,
     baseURL: opts.baseURL,
     basePath: "/api/auth",
@@ -63,7 +69,11 @@ export function createAuth(opts: AuthOptions): AuthProvider {
   };
 }
 
-/** Idempotently seed a user (server-side, bypassing the disabled public sign-up). */
+/**
+ * Idempotently seed a user. The `auth` must be created with `allowSignUp: true`
+ * (sign-up is off on the runtime instances). A genuine duplicate is treated as
+ * "exists"; any other failure is re-thrown so seeding can't fail silently.
+ */
 export async function seedUser(
   auth: AuthProvider,
   user: SeedUserInput,
@@ -71,8 +81,9 @@ export async function seedUser(
   try {
     await auth.signUp(user);
     return "created";
-  } catch {
-    // Already exists (or duplicate email) — idempotent for re-runs.
-    return "exists";
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/already exists|USER_ALREADY_EXISTS|duplicate/i.test(msg)) return "exists";
+    throw err;
   }
 }

@@ -22,7 +22,7 @@ async function main(): Promise<void> {
 
   const db = getDb(url);
   for (const system of ["sentry", "quantum"] as const) {
-    const auth = createAuth({ db, system, secret, baseURL: "http://localhost" });
+    const auth = createAuth({ db, system, secret, baseURL: "http://localhost", allowSignUp: true });
     for (const user of SEED[system]) {
       const result = await seedUser(auth, user);
       console.warn(`seed: ${system} ${user.email} → ${result}`);

@@ -141,6 +141,13 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
+- **2026-06-11 — Seeding worked around Better Auth's disabled sign-up.** With
+  `disableSignUp: true`, better-auth 1.6.16 rejects **server-side** `signUpEmail` too
+  (`EMAIL_PASSWORD_SIGN_UP_DISABLED`) — so the M10 seed silently no-op'd (and `seedUser`
+  swallowed the error as "exists"). `createAuth` gains an `allowSignUp` flag (default **off** —
+  runtime workers stay gated); the seed creates users via an `allowSignUp: true` instance, and
+  `seedUser` now re-throws anything that isn't a genuine duplicate. Verified live: login →
+  gated booking (`bookedBy` recorded) → cross-system isolation, on both systems.
 - **2026-06-10 — Break survived key rotation; isolated per-packet failures.** Switching the
   active scheme (or re-applying one) minted a brand-new keyring, orphaning already-harvested
   packets — the break engine then threw decrypting them with the wrong key, and with no
