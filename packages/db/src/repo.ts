@@ -8,6 +8,8 @@ import { trades } from "./schema.js";
 
 export interface ListOptions {
   system?: System;
+  /** Phase 2: scope the blotter to one booker. */
+  bookedBy?: string;
   limit: number;
   cursor?: string | null;
 }
@@ -66,6 +68,7 @@ function rowToTrade(row: Row): Trade {
     tenor: row.tenor,
     tradeDate: row.tradeDate,
     status: row.status as Trade["status"],
+    bookedBy: row.bookedBy,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -82,6 +85,7 @@ const insertValues = (input: TradeInput, idempotencyKey: string | null) => ({
   tradeDate: input.tradeDate,
   status: input.status,
   payloadJson: input,
+  bookedBy: input.bookedBy ?? null,
   idempotencyKey,
 });
 
@@ -105,10 +109,11 @@ export function drizzleTradesRepository(db: Database): TradesRepository {
       return { trade: rowToTrade(row), created: true };
     },
 
-    async list({ system, limit, cursor }) {
+    async list({ system, bookedBy, limit, cursor }) {
       const c = decodeCursor(cursor);
       const conditions = [
         system ? eq(trades.system, system) : undefined,
+        bookedBy ? eq(trades.bookedBy, bookedBy) : undefined,
         c
           ? or(
               lt(trades.createdAt, new Date(c.createdAt)),
@@ -160,10 +165,11 @@ export class InMemoryTradesRepository implements TradesRepository {
     return { trade, created: true };
   }
 
-  async list({ system, limit, cursor }: ListOptions): Promise<ListResult> {
+  async list({ system, bookedBy, limit, cursor }: ListOptions): Promise<ListResult> {
     const c = decodeCursor(cursor);
     const sorted = [...this.rows]
       .filter((t) => (system ? t.system === system : true))
+      .filter((t) => (bookedBy ? t.bookedBy === bookedBy : true))
       .filter((t) => (c ? afterCursor(t, c) : true))
       .sort((a, b) =>
         a.createdAt === b.createdAt ? (a.id < b.id ? 1 : -1) : a.createdAt < b.createdAt ? 1 : -1,

@@ -9,6 +9,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@qstd/auth": "workspace:^",
     "@qstd/db": "workspace:^",
     "@qstd/shared": "workspace:^",
     "hono": "^4.12.25"

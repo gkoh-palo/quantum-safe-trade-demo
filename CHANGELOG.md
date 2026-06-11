@@ -12,6 +12,15 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-11 — M10 per-system Better Auth (Phase 2).** Sentry & Quantum each run their **own**
+  Better Auth (email+password, **self sign-up disabled** — accounts are admin-seeded), mapped onto
+  their own namespaced tables (`sentry_*` / `quantum_*`) on the shared Neon DB (migration `0004`,
+  which also adds `trades.booked_by`). New **`@qstd/auth`** package (`createAuth`, `seedUser`) so
+  `better-auth` only lands in the sentry/quantum bundles (~514 KB gzip, within the Workers limit).
+  Each worker mounts `/api/auth/*`, **gates booking** (`POST /trades` now requires a session and
+  records `booked_by`), and supports `GET /trades?mine=1` for the per-user blotter. Auth is an
+  injected dep (`AuthProvider`), so handlers stay unit-testable — 4 new gating tests. Seed script:
+  `pnpm --filter @qstd/auth seed`. Gates M11/M12 (the booking UIs).
 - **2026-06-10 — M8 cron feeds (hands-off demo).** Two Cron Triggers on `ui`, gated by per-row
   auto-mode flags so they're no-ops until switched on: **trade-generator** (`*/1 * * * *`) posts
   a random trade through sentry/quantum (real seal+emit) to keep the wire alive, and

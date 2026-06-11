@@ -1,7 +1,6 @@
-// Drizzle schema for the PLAN §4 data model. All tables are defined here so a
-// single migration provisions everything; M1 only exercises `trades`, the rest
-// (crypto_config, mappings, wire_messages, harvested_packets, audit_log) are wired
-// by M3/M4. Better Auth tables (user/session/account/verification) land in M7.
+// Drizzle schema for the PLAN §4 data model + the Phase 2 Better Auth tables.
+// crypto_config / trades / mappings / wire_messages / harvested_packets / audit_log
+// (M1–M5), plus per-system Better Auth tables (sentry_* / quantum_*, M10/§11a).
 import {
   boolean,
   customType,
@@ -66,6 +65,7 @@ export const trades = pgTable("trades", {
   status: text("status").notNull().default("active"),
   payloadJson: jsonb("payload_json").notNull(), // canonical trade body
   idempotencyKey: text("idempotency_key").unique(),
+  bookedBy: text("booked_by"), // Phase 2: the system user who booked it (per-user blotter)
   createdAt: createdAt(),
 });
 
@@ -120,3 +120,90 @@ export const auditLog = pgTable("audit_log", {
   event: text("event").notNull(),
   detail: jsonb("detail"),
 });
+
+// --- Better Auth tables, namespaced per system (Phase 2 / PLAN §11a) ---------
+// Sentry and Quantum each run their own Better Auth instance against this one DB,
+// so each system's user/session/account/verification tables are prefixed. Columns
+// match Better Auth's core schema (property names are the Better Auth field names;
+// DB column names are snake_case). @qstd/auth maps these into each auth instance.
+const ts = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
+const tsUpd = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
+
+function authTableSet(prefix: string) {
+  const user = pgTable(`${prefix}_user`, {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    image: text("image"),
+    createdAt: ts(),
+    updatedAt: tsUpd(),
+  });
+  const session = pgTable(`${prefix}_session`, {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: ts(),
+    updatedAt: tsUpd(),
+  });
+  const account = pgTable(`${prefix}_account`, {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    idToken: text("id_token"),
+    password: text("password"),
+    createdAt: ts(),
+    updatedAt: tsUpd(),
+  });
+  const verification = pgTable(`${prefix}_verification`, {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: ts(),
+    updatedAt: tsUpd(),
+  });
+  return { user, session, account, verification };
+}
+
+const sentryAuthTables = authTableSet("sentry");
+const quantumAuthTables = authTableSet("quantum");
+
+// Exported individually so drizzle-kit picks them up.
+export const sentryUser = sentryAuthTables.user;
+export const sentrySession = sentryAuthTables.session;
+export const sentryAccount = sentryAuthTables.account;
+export const sentryVerification = sentryAuthTables.verification;
+export const quantumUser = quantumAuthTables.user;
+export const quantumSession = quantumAuthTables.session;
+export const quantumAccount = quantumAuthTables.account;
+export const quantumVerification = quantumAuthTables.verification;
+
+/** The four-table Better Auth schema for a system, keyed by Better Auth model name. */
+export const authSchema = {
+  sentry: {
+    user: sentryUser,
+    session: sentrySession,
+    account: sentryAccount,
+    verification: sentryVerification,
+  },
+  quantum: {
+    user: quantumUser,
+    session: quantumSession,
+    account: quantumAccount,
+    verification: quantumVerification,
+  },
+} as const;
