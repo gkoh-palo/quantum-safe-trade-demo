@@ -12,6 +12,13 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-11 — One-shot account bootstrap (`scripts/setup.sh`).** Stands the whole stack up on
+  a fresh Cloudflare account from a single `NEON_DATABASE_URL`: generates + persists the shared
+  secrets (gitignored, reused on re-runs), creates the queues, builds + deploys the five workers,
+  sets every runtime secret (deriving each booking system's `BETTER_AUTH_URL` from the URL it just
+  deployed to, so it works on any account subdomain), runs the migrations, and seeds the demo
+  users. Idempotent. Documented in the playbook (Part 3) and README. Complements CI, which only
+  handles ongoing deploys.
 - **2026-06-11 — User playbook (`docs/PLAYBOOK.md`).** A practical operator guide: Part 1 — using
   the services (surfaces + URLs, logins, booking on Keystone/Helix, the pitch view, the admin
   control plane, what the pipeline does on book); Part 2 — running a demo (pre-flight checklist, an

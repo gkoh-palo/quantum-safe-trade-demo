@@ -126,6 +126,46 @@ Two-screen setup: **Pitch** on the projector, **Admin** on your laptop. Full nar
 
 ---
 
+# Part 3 — Deploy to a new Cloudflare account
+
+`scripts/setup.sh` stands the whole stack up on a fresh account in one shot, and is safe to
+re-run. You bring a Neon Postgres URL; it does the rest.
+
+```bash
+pnpm install
+pnpm exec wrangler login          # or export CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+NEON_DATABASE_URL="postgres://…" ./scripts/setup.sh
+```
+
+What it does, in order:
+
+1. **Generates the shared secrets** (`ADMIN_TOKEN`, `BETTER_AUTH_SECRET`, `INTERNAL_TOKEN`) the
+   first time and saves them to `.deploy-secrets.env` (gitignored); re-runs reuse them. Pass any
+   of them as env vars to override.
+2. **Creates the queues** (`trade-migration`, `harvest-tap`).
+3. **Builds** the three Vite apps and **deploys** all five workers, capturing each one's
+   `*.workers.dev` URL.
+4. **Sets the runtime secrets** per worker — including each booking system's `BETTER_AUTH_URL`,
+   derived from the URL it just deployed to (so it works on any account's subdomain):
+
+   | Worker                            | Secrets                                                                        |
+   | --------------------------------- | ------------------------------------------------------------------------------ |
+   | `qstd-keystone`, `qstd-helix`     | `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `INTERNAL_TOKEN` |
+   | `qstd-ui`                         | `NEON_DATABASE_URL`, `ADMIN_TOKEN`, `INTERNAL_TOKEN`                           |
+   | `qstd-integration`, `qstd-hacker` | `NEON_DATABASE_URL`                                                            |
+
+5. **Runs the migrations** against Neon and **seeds** the demo users (and trades).
+
+At the end it prints the three URLs and where the admin token lives. The only thing it can't do
+for you is create the Neon database — provision that (any Postgres works) and pass its URL.
+
+> CI (`.github/workflows/deploy.yml`) handles **ongoing** deploys on push to `main`; the GitHub
+> repo needs `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `NEON_DATABASE_URL`, and
+> `BETTER_AUTH_SECRET`. The setup script is the one-time bootstrap CI doesn't cover (queues,
+> per-worker runtime secrets, seeding).
+
+---
+
 ## Appendix
 
 ### Schemes (confidentiality)
