@@ -12,6 +12,13 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-11 — M12 Quantum booking UI (Phase 2 complete).** The same config-driven booking app
+  on the `quantum` worker — login (Better Auth) → book **liability** trades (FX/IRS/CCS) → per-user
+  blotter — served from the quantum worker's own assets binding, with a distinct accent so the two
+  systems read differently. Made trivial by M11's generic wiring: `workers/quantum/web` is just the
+  Sentry app with a Quantum `SYSTEM` block, and the deploy job already builds any `workers/*/web`.
+  No new secrets — `INTERNAL_TOKEN` + Better Auth were set on quantum in M10/M11. This completes
+  Phase 2: **Sentry and Quantum are now standalone, authenticated, UI-bearing products.**
 - **2026-06-11 — M11 Sentry booking UI (Phase 2).** A React + Vite app served from the `sentry`
   worker itself (Workers Assets, SPA fallback via the Hono `notFound`): **log in** (Better Auth)
   → **book asset trades** (loan/bond) → a **per-user blotter** (`GET /trades?mine=1`). Booked

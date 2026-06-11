@@ -21,14 +21,13 @@ crypto, wire+harvest, break+era, migration, pitch UI, token-gated admin control 
 self-running cron feeds — all green and verified in production (incl. the keyring-rotation fix,
 PR #13, that resolved the "$0 / RSA looks safe" bug).
 
-**Phase 2 in progress (PLAN §14):** standalone products — each system serves its own booking UI
-behind its own Better Auth. **M10 done + verified live; M11 done — in review.** M10: `@qstd/auth`
-(per-system Better Auth, sign-up disabled), namespaced `sentry_*`/`quantum_*` tables +
-`trades.booked_by` (migration `0004`). **M11: the Sentry booking UI** — a React app served from
-the `sentry` worker (login → book loan/bond → per-user blotter), plus an **internal-token bypass**
-so the cron/injector keep working through the now-gated `POST /trades`. Next: **M12** (Quantum
-booking UI — the same config-driven app on the `quantum` worker). **Decisions locked (PLAN §14):**
-no roles, per-user blotter via `trades.booked_by`,
+**Phase 2 (PLAN §14) — COMPLETE.** Sentry & Quantum are now standalone, authenticated,
+UI-bearing products. **M10** `@qstd/auth` (per-system Better Auth, namespaced `sentry_*`/`quantum_*`
+tables + `trades.booked_by`, migration `0004`) — verified live. **M11** Sentry booking UI (served
+from the `sentry` worker; login → book loan/bond → per-user blotter) + the `INTERNAL_TOKEN` bypass
+so the cron/injector survive the gate — verified live (login/book/injector all confirmed). **M12**
+Quantum booking UI (same config-driven app on `quantum`, fx/irs/ccs) — in review. **Decisions
+(PLAN §14):** no roles, per-user blotter via `trades.booked_by`,
 admin-seeded accounts (no self sign-up), HTTP API contract (no RPC). (Optional backlog: **M7b** admin Better
 Auth, **M9** copy/rehearsal polish.)
 
@@ -127,8 +126,9 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
     wiring (`workers/*/web`, deploy builds any worker with a `build` script). Plus the
     `INTERNAL_TOKEN` bypass so the cron/injector survive the gate. **Needs live verify** after
     setting `INTERNAL_TOKEN` (book via the UI; confirm cron/injector restored).
-12. **M12 Quantum booking UI**: the same config-driven app on the `quantum` worker (fx/irs/ccs) —
-    add `workers/quantum/web` (copy sentry's with a Quantum `SYSTEM` block) + the assets binding.
+12. ✅ **M12 Quantum booking UI** — `workers/quantum/web` (the Sentry app with a Quantum `SYSTEM`
+    block + distinct accent), served from the `quantum` worker; login → book fx/irs/ccs → blotter.
+    No new secrets (INTERNAL_TOKEN + Better Auth already set). **— Phase 2 (M10–M12) complete. —**
 
 **Optional backlog:** **M7b** (give `ui` admin its own Better Auth instead of `ADMIN_TOKEN`);
 **M9** (copy/captions, demo-script rehearsal — full reset already shipped as admin "Clear
