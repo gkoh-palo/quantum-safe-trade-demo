@@ -2,29 +2,29 @@
 // shape shared across workers and (later) the UI. PLAN §1/§4, /api-design skill.
 import { z } from "zod";
 
-// Products that ORIGINATE in each system — what you can POST. Sentry books assets,
-// Quantum books liabilities.
-export const SENTRY_PRODUCTS = ["loan", "bond"] as const;
-export const QUANTUM_PRODUCTS = ["fx", "irs", "ccs"] as const;
+// Products that ORIGINATE in each system — what you can POST. Keystone books assets,
+// Helix books liabilities.
+export const KEYSTONE_PRODUCTS = ["loan", "bond"] as const;
+export const HELIX_PRODUCTS = ["fx", "irs", "ccs"] as const;
 
 // Products that only appear as MIGRATION TARGETS: the other system's taxonomy for
 // the same instrument (the integration translates product codes between vendors).
-// A Sentry asset keeps its asset class but is relabelled for Quantum, and vice versa.
-export const QUANTUM_TARGET_PRODUCTS = ["money-market", "security"] as const; // assets, in Quantum
-export const SENTRY_TARGET_PRODUCTS = [
+// A Keystone asset keeps its asset class but is relabelled for Helix, and vice versa.
+export const HELIX_TARGET_PRODUCTS = ["money-market", "security"] as const; // assets, in Helix
+export const KEYSTONE_TARGET_PRODUCTS = [
   "currency-forward",
   "interest-rate-swap",
   "cross-currency-swap",
-] as const; // liabilities, in Sentry
+] as const; // liabilities, in Keystone
 
 export const PRODUCTS = [
-  ...SENTRY_PRODUCTS,
-  ...QUANTUM_PRODUCTS,
-  ...QUANTUM_TARGET_PRODUCTS,
-  ...SENTRY_TARGET_PRODUCTS,
+  ...KEYSTONE_PRODUCTS,
+  ...HELIX_PRODUCTS,
+  ...HELIX_TARGET_PRODUCTS,
+  ...KEYSTONE_TARGET_PRODUCTS,
 ] as const;
 
-export const SYSTEMS = ["sentry", "quantum"] as const;
+export const SYSTEMS = ["keystone", "helix"] as const;
 export const ASSET_CLASSES = ["asset", "liability"] as const;
 export const TRADE_STATUSES = ["pending", "active", "settled", "cancelled"] as const;
 
@@ -34,11 +34,11 @@ export type AssetClass = (typeof ASSET_CLASSES)[number];
 export type TradeStatus = (typeof TRADE_STATUSES)[number];
 
 // Asset-class is intrinsic to the instrument and preserved across a migration —
-// loans/bonds (and their Quantum labels money-market/security) are assets; the rest
-// (fx/irs/ccs and their Sentry labels) are liabilities.
-const ASSET_PRODUCTS = new Set<string>([...SENTRY_PRODUCTS, ...QUANTUM_TARGET_PRODUCTS]);
+// loans/bonds (and their Helix labels money-market/security) are assets; the rest
+// (fx/irs/ccs and their Keystone labels) are liabilities.
+const ASSET_PRODUCTS = new Set<string>([...KEYSTONE_PRODUCTS, ...HELIX_TARGET_PRODUCTS]);
 // Which system a product lives in (origins + the targets booked into each).
-const SENTRY_RESIDENT = new Set<string>([...SENTRY_PRODUCTS, ...SENTRY_TARGET_PRODUCTS]);
+const KEYSTONE_RESIDENT = new Set<string>([...KEYSTONE_PRODUCTS, ...KEYSTONE_TARGET_PRODUCTS]);
 
 export function productToAssetClass(product: Product): AssetClass {
   return ASSET_PRODUCTS.has(product) ? "asset" : "liability";
@@ -46,7 +46,7 @@ export function productToAssetClass(product: Product): AssetClass {
 
 /** The system a product lives in (origins natively; targets once migrated in). */
 export function systemForProduct(product: Product): System {
-  return SENTRY_RESIDENT.has(product) ? "sentry" : "quantum";
+  return KEYSTONE_RESIDENT.has(product) ? "keystone" : "helix";
 }
 
 /** Human-facing product labels for the UI. */
@@ -67,7 +67,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Build the create-trade body schema for a specific worker, restricting `product`
- * to that system's products (so Sentry rejects an FX trade with a 400, etc.).
+ * to that system's products (so Keystone rejects an FX trade with a 400, etc.).
  */
 export function makeCreateTradeSchema<T extends readonly [string, ...string[]]>(products: T) {
   return z.object({
@@ -163,7 +163,7 @@ const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * ite
 
 /** A random, plausible create-trade body for the given system (cron feed). */
 export function randomTradeBody(system: System): CreateTradeBody {
-  const products = system === "sentry" ? SENTRY_PRODUCTS : QUANTUM_PRODUCTS;
+  const products = system === "keystone" ? KEYSTONE_PRODUCTS : HELIX_PRODUCTS;
   return {
     product: pick(products),
     counterparty: pick(DEMO_COUNTERPARTIES),

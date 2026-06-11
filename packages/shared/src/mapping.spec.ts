@@ -3,9 +3,9 @@ import type { Trade } from "./trades.js";
 import { canonicalTradePayload } from "./wire.js";
 import { MAPPING_RULES_VERSION, mapTrade, parseCanonicalTrade } from "./mapping.js";
 
-const sentryLoan: Trade = {
+const keystoneLoan: Trade = {
   id: "11111111-1111-1111-1111-111111111111",
-  system: "sentry",
+  system: "keystone",
   assetClass: "asset",
   product: "loan",
   counterparty: "Helios Capital",
@@ -18,44 +18,44 @@ const sentryLoan: Trade = {
   createdAt: "2026-01-15T00:00:00.000Z",
 };
 
-describe("Sentry⇄Quantum mapping", () => {
-  it("re-books a Sentry asset into Quantum's taxonomy, preserving its asset class", () => {
-    const { target, direction, rulesVersion } = mapTrade(sentryLoan);
-    expect(direction).toBe("sentry->quantum");
+describe("Keystone⇄Helix mapping", () => {
+  it("re-books a Keystone asset into Helix's taxonomy, preserving its asset class", () => {
+    const { target, direction, rulesVersion } = mapTrade(keystoneLoan);
+    expect(direction).toBe("keystone->helix");
     expect(rulesVersion).toBe(MAPPING_RULES_VERSION);
     expect(target).toMatchObject({
-      system: "quantum",
+      system: "helix",
       assetClass: "asset", // class is intrinsic — preserved across the migration
-      product: "money-market", // loan → Quantum's "Money Market"
+      product: "money-market", // loan → Helix's "Money Market"
       counterparty: "Helios Capital",
       notional: 25_000_000,
       currency: "USD",
     });
   });
 
-  it("re-books a Quantum liability into Sentry's taxonomy, preserving its class", () => {
-    const fx: Trade = { ...sentryLoan, system: "quantum", assetClass: "liability", product: "fx" };
+  it("re-books a Helix liability into Keystone's taxonomy, preserving its class", () => {
+    const fx: Trade = { ...keystoneLoan, system: "helix", assetClass: "liability", product: "fx" };
     const { target, direction } = mapTrade(fx);
-    expect(direction).toBe("quantum->sentry");
+    expect(direction).toBe("helix->keystone");
     expect(target).toMatchObject({
-      system: "sentry",
-      assetClass: "liability", // still a liability, just labelled for Sentry
-      product: "currency-forward", // fx → Sentry's "Currency Forward"
+      system: "keystone",
+      assetClass: "liability", // still a liability, just labelled for Keystone
+      product: "currency-forward", // fx → Keystone's "Currency Forward"
     });
   });
 
   it("loan ↔ money-market round-trips", () => {
-    const toQuantum = mapTrade(sentryLoan).target;
-    expect(toQuantum.product).toBe("money-market");
-    const back = mapTrade({ ...sentryLoan, ...toQuantum, id: "x", createdAt: "x" }).target;
+    const toHelix = mapTrade(keystoneLoan).target;
+    expect(toHelix.product).toBe("money-market");
+    const back = mapTrade({ ...keystoneLoan, ...toHelix, id: "x", createdAt: "x" }).target;
     expect(back.product).toBe("loan");
-    expect(back.system).toBe("sentry");
+    expect(back.system).toBe("keystone");
   });
 
   it("parseCanonicalTrade round-trips the sealed payload", () => {
-    const parsed = parseCanonicalTrade(canonicalTradePayload(sentryLoan));
+    const parsed = parseCanonicalTrade(canonicalTradePayload(keystoneLoan));
     expect(parsed).toMatchObject({
-      id: sentryLoan.id,
+      id: keystoneLoan.id,
       product: "loan",
       counterparty: "Helios Capital",
       notional: 25_000_000,

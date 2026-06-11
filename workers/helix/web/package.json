@@ -1,5 +1,5 @@
 {
-  "name": "@qstd/sentry-web",
+  "name": "@qstd/helix-web",
   "version": "0.0.0",
   "private": true,
   "type": "module",

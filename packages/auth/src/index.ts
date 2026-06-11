@@ -1,8 +1,8 @@
-// @qstd/auth — per-system Better Auth (PLAN §11a). Sentry and Quantum each create
+// @qstd/auth — per-system Better Auth (PLAN §11a). Keystone and Helix each create
 // their own instance against the shared Neon DB, mapped onto that system's
-// namespaced tables (sentry_* / quantum_*). Email+password, self sign-up disabled
+// namespaced tables (keystone_* / helix_*). Email+password, self sign-up disabled
 // (accounts are admin-seeded). Kept in its own package so `better-auth` only lands
-// in the sentry/quantum bundles.
+// in the keystone/helix bundles.
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { authSchema } from "@qstd/db";
@@ -14,7 +14,7 @@ export interface SeedUserInput {
   password: string;
 }
 
-export type AuthSystem = "sentry" | "quantum";
+export type AuthSystem = "keystone" | "helix";
 
 export interface SessionUser {
   id: string;
@@ -26,7 +26,7 @@ export interface AuthOptions {
   db: Database;
   system: AuthSystem;
   secret: string;
-  /** This worker's public origin, e.g. https://qstd-sentry.gkoh.workers.dev */
+  /** This worker's public origin, e.g. https://qstd-keystone.gkoh.workers.dev */
   baseURL: string;
   /**
    * Allow email/password sign-up. Default false (public registration is disabled —

@@ -13,42 +13,42 @@ everything currently lives under **[Unreleased]**.
 ### Added
 
 - **2026-06-11 — User playbook (`docs/PLAYBOOK.md`).** A practical operator guide: Part 1 — using
-  the services (surfaces + URLs, logins, booking on Sentry/Quantum, the pitch view, the admin
+  the services (surfaces + URLs, logins, booking on Keystone/Helix, the pitch view, the admin
   control plane, what the pipeline does on book); Part 2 — running a demo (pre-flight checklist, an
   ~8-min beat-by-beat runbook incl. live booking, failure toggles, reset-between-runs), plus a
   schemes/break-modes/troubleshooting appendix. Cross-linked with the narrated
   [DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md).
-- **2026-06-11 — M12 Quantum booking UI (Phase 2 complete).** The same config-driven booking app
-  on the `quantum` worker — login (Better Auth) → book **liability** trades (FX/IRS/CCS) → per-user
-  blotter — served from the quantum worker's own assets binding, with a distinct accent so the two
-  systems read differently. Made trivial by M11's generic wiring: `workers/quantum/web` is just the
-  Sentry app with a Quantum `SYSTEM` block, and the deploy job already builds any `workers/*/web`.
-  No new secrets — `INTERNAL_TOKEN` + Better Auth were set on quantum in M10/M11. This completes
-  Phase 2: **Sentry and Quantum are now standalone, authenticated, UI-bearing products.**
-- **2026-06-11 — M11 Sentry booking UI (Phase 2).** A React + Vite app served from the `sentry`
+- **2026-06-11 — M12 Helix booking UI (Phase 2 complete).** The same config-driven booking app
+  on the `helix` worker — login (Better Auth) → book **liability** trades (FX/IRS/CCS) → per-user
+  blotter — served from the helix worker's own assets binding, with a distinct accent so the two
+  systems read differently. Made trivial by M11's generic wiring: `workers/helix/web` is just the
+  Keystone app with a Helix `SYSTEM` block, and the deploy job already builds any `workers/*/web`.
+  No new secrets — `INTERNAL_TOKEN` + Better Auth were set on helix in M10/M11. This completes
+  Phase 2: **Keystone and Helix are now standalone, authenticated, UI-bearing products.**
+- **2026-06-11 — M11 Keystone booking UI (Phase 2).** A React + Vite app served from the `keystone`
   worker itself (Workers Assets, SPA fallback via the Hono `notFound`): **log in** (Better Auth)
   → **book asset trades** (loan/bond) → a **per-user blotter** (`GET /trades?mine=1`). Booked
   trades go through the real seal + emit path, so they still feed the HNDL pitch. Build wiring is
   now generic — `workers/*/web` is a workspace + excluded from root lint/typecheck, and the deploy
-  job builds any worker that has a `build` script (so M12's Quantum UI is drop-in). The app is
-  config-driven (a `SYSTEM` block) so Quantum reuses it.
+  job builds any worker that has a `build` script (so M12's Helix UI is drop-in). The app is
+  config-driven (a `SYSTEM` block) so Helix reuses it.
   - **Internal-bypass (fixes an M10 regression):** gating `POST /trades` had also blocked the
     trusted internal callers — the admin trade-injector and the cron trade-generator reach it via
-    service bindings with no session. They now send an `x-internal-token`; sentry/quantum bypass
+    service bindings with no session. They now send an `x-internal-token`; keystone/helix bypass
     the user-auth gate when it matches `INTERNAL_TOKEN` (PLAN §14: internal hops bypass user auth).
     System-fed trades carry no `booked_by`. 71 tests (+2 bypass). All workers bundle clean.
-- **2026-06-11 — M10 per-system Better Auth (Phase 2).** Sentry & Quantum each run their **own**
+- **2026-06-11 — M10 per-system Better Auth (Phase 2).** Keystone & Helix each run their **own**
   Better Auth (email+password, **self sign-up disabled** — accounts are admin-seeded), mapped onto
-  their own namespaced tables (`sentry_*` / `quantum_*`) on the shared Neon DB (migration `0004`,
+  their own namespaced tables (`keystone_*` / `helix_*`) on the shared Neon DB (migration `0004`,
   which also adds `trades.booked_by`). New **`@qstd/auth`** package (`createAuth`, `seedUser`) so
-  `better-auth` only lands in the sentry/quantum bundles (~514 KB gzip, within the Workers limit).
+  `better-auth` only lands in the keystone/helix bundles (~514 KB gzip, within the Workers limit).
   Each worker mounts `/api/auth/*`, **gates booking** (`POST /trades` now requires a session and
   records `booked_by`), and supports `GET /trades?mine=1` for the per-user blotter. Auth is an
   injected dep (`AuthProvider`), so handlers stay unit-testable — 4 new gating tests. Seed script:
   `pnpm --filter @qstd/auth seed`. Gates M11/M12 (the booking UIs).
 - **2026-06-10 — M8 cron feeds (hands-off demo).** Two Cron Triggers on `ui`, gated by per-row
   auto-mode flags so they're no-ops until switched on: **trade-generator** (`*/1 * * * *`) posts
-  a random trade through sentry/quantum (real seal+emit) to keep the wire alive, and
+  a random trade through keystone/helix (real seal+emit) to keep the wire alive, and
   **epoch-tick** (`*/2 * * * *`) nudges the CRQC countdown forward (`EpochClock.tick`, flips to
   the quantum era at 100%). New `crypto_config.auto_generate` / `auto_tick` columns (migration
   `0003`) + `cryptoConfigRepo.setAuto`; `@qstd/shared` `randomTradeBody`; admin `/api/admin/auto`
@@ -59,7 +59,7 @@ everything currently lives under **[Unreleased]**.
   the M7b follow-up. New `ui` BFF routes under `/api/admin/*`: **set scheme + break-mode**
   (`cryptoConfigRepo.setActive`, rotates the keyring — this is what finally drives the
   hybrid-ML-KEM contrast from the UI), **set CRQC progress**, **inject a trade** (forwarded to
-  sentry/quantum via new service bindings so it goes through the real seal+emit path), and a
+  keystone/helix via new service bindings so it goes through the real seal+emit path), and a
   **raw inspector** (`@qstd/db` `inspectRecent` — recent loot with ciphertext preview +
   recovered plaintext). The React app gains an Admin view (scheme/mode picker, CRQC slider,
   trade injector, live inspector) reachable at `/admin`. `parseSchemeBody` is a pure validator
@@ -76,18 +76,18 @@ everything currently lives under **[Unreleased]**.
   the deploy job builds it before `wrangler deploy`, and `workers/ui/web` is its own toolchain
   (own tsconfig, excluded from root lint/typecheck). 48 KB gzipped; all workers bundle clean.
   Era/break routes are open until M7 gates them with Better Auth.
-- **2026-06-10 — M5 integration mapper.** The legitimate Sentry⇄Quantum migration half. New
+- **2026-06-10 — M5 integration mapper.** The legitimate Keystone⇄Helix migration half. New
   `@qstd/shared` mapping rules (`mapTrade`) + `parseCanonicalTrade`. A migration re-books a trade
   into the other system's product taxonomy **while preserving its asset/liability class** — a
-  vendor product-code translation, not an economic transform. Sentry assets become Quantum
-  labels (loan → money-market, bond → security); Quantum liabilities become Sentry labels (fx →
+  vendor product-code translation, not an economic transform. Keystone assets become Helix
+  labels (loan → money-market, bond → security); Helix liabilities become Keystone labels (fx →
   currency-forward, irs → interest-rate-swap, ccs → cross-currency-swap); each round-trips.
   `PRODUCT_LABELS` added for the UI. `@qstd/db` adds the `mappings` repo and
   `migrateFromEnvelope`: open the wire message (the integration legitimately holds the keys), map
   to the counterpart system, persist the target trade (idempotent on the source id) + a
   `mappings` link, then re-seal the migrated leg onto the wire and mirror it to `harvest-tap` (so
   Eve sniffs the second hop too). The **integration** worker now consumes `trade-migration` (the
-  queue sentry/quantum have produced since M3) and exposes `GET /mappings/count`. 5 new tests
+  queue keystone/helix have produced since M3) and exposes `GET /mappings/count`. 5 new tests
   (mapping both directions + round-trip + the open→map pipeline); all five workers bundle clean.
 - **2026-06-10 — M4 break + era (the payoff).** "Advance to the Quantum Era" now genuinely
   breaks the harvested traffic. **EpochClock DO** (in `ui`) is the single global era + CRQC-progress
@@ -109,7 +109,7 @@ everything currently lives under **[Unreleased]**.
   a `keyring` column and migration `0001`), the `wire_messages` repo + `WireEnvelope`
   converters, the `harvested_packets` repo, and `sealAndPersist` + `createWireEmitter`.
   `@qstd/shared` adds the `WireEnvelope`/queue-message contract and `canonicalTradePayload`. On
-  create, **sentry** and **quantum** now seal the trade under the active scheme, write a
+  create, **keystone** and **helix** now seal the trade under the active scheme, write a
   `wire_messages` row, and fan the envelope out to the `trade-migration` (legit handoff, M5
   consumer) and `harvest-tap` (Eve's mirror) queues. **hacker** consumes `harvest-tap` into the
   new `HarvestArchive` Durable Object (SQLite loot log) and writes a `harvested_packets` row.
@@ -120,7 +120,7 @@ everything currently lives under **[Unreleased]**.
   (`trades`, `crypto_config`, `mappings`, `wire_messages`, `harvested_packets`, `audit_log`),
   the `neon-http` client (`getDb`), the first generated migration, and an idempotent seed.
   `@qstd/shared`: the trade domain (products/systems, the Zod create-trade schema, the error
-  envelope, helpers). `sentry` (loans/bonds) and `quantum` (fx/irs/ccs) now serve real trade
+  envelope, helpers). `keystone` (loans/bonds) and `helix` (fx/irs/ccs) now serve real trade
   CRUD via Hono — `POST/GET /trades`, `GET /trades/:id`, Zod validation, the `{ data, page }`
   collection shape, keyset pagination, and `Idempotency-Key` replay. Route handlers take an
   injected `TradesRepository` (Drizzle in prod, in-memory in tests), so they're tested without
@@ -154,11 +154,20 @@ everything currently lives under **[Unreleased]**.
 
 ### Changed
 
+- **2026-06-11 — Renamed the two trade systems: Sentry → Keystone, Quantum → Helix.** The old
+  names were confusing — "Sentry" clashes with the well-known error-monitoring product, and
+  "Quantum" collided with the quantum-computing threat the demo is about. Renamed everywhere:
+  worker names + URLs (`qstd-keystone`, `qstd-helix`), packages (`@qstd/keystone`, `@qstd/helix`
+  and their `-web` apps), the `System` type and product helpers, the per-system Better Auth tables
+  (`keystone_*` / `helix_*`, via a drop + recreate in migrations 0005/0006), seeded logins
+  (`demo@keystone.local` / `demo@helix.local`), the UI labels, and the docs. The post-quantum
+  threat language ("quantum era", "post-quantum", "quantum-safe") is unchanged — only the system
+  names moved. README rewritten for the live state with a walkthrough-video placeholder.
 - **2026-06-11 — Plan: Phase 2 added (trade-booking product).** New requirements folded into
-  `docs/PLAN.md`: Sentry & Quantum each get their **own trade-booking UI** behind their **own
+  `docs/PLAN.md`: Keystone & Helix each get their **own trade-booking UI** behind their **own
   Better Auth** (separate login per system), so users can book trades and a separate team can
   build a quantum-safe POC layer on either system. Decisions: per-worker standalone UIs
-  (`workers/{sentry,quantum}/web`) + separate per-system auth (namespaced Drizzle tables). Updated
+  (`workers/{keystone,helix}/web`) + separate per-system auth (namespaced Drizzle tables). Updated
   §3/§6/§7/§9/§11/§13 and added §14; new milestones **M10–M12**. No code yet — Phase 1 (M0–M8) is
   the paused, deployed demo.
 - **2026-06-09 — Commit convention.** Stop appending the `Co-Authored-By: Claude` trailer to
@@ -192,7 +201,7 @@ everything currently lives under **[Unreleased]**.
   Node.js v22") because CI ran Node 20 (`.nvmrc`), so the action fell back to wrangler 3.90.0 →
   "Missing entry-point" again. Bumped `.nvmrc` → 22 (all CI jobs use `node-version-file`) and
   `engines.node` → `>=22`. wrangler 4 needs Node ≥ 22.
-- **2026-06-09 — Deploy: workspace deps broke wrangler install.** Once `sentry`/`quantum`
+- **2026-06-09 — Deploy: workspace deps broke wrangler install.** Once `keystone`/`helix`
   gained `workspace:^` deps (`@qstd/db`), `cloudflare/wrangler-action` died with
   `EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"` — it was running `npm i wrangler`
   inside the worker dir and npm can't parse `workspace:`. Added `wrangler` as a root

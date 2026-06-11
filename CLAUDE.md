@@ -5,7 +5,7 @@ Repo conventions and the quality gate. Read this before changing code.
 ## What this repo is
 
 A live, deployable simulation of the **Harvest-Now-Decrypt-Later** threat against a
-Sentry (assets) ⇄ Quantum (liabilities) trade integration, with configurable crypto and a
+Keystone (assets) ⇄ Helix (liabilities) trade integration, with configurable crypto and a
 post-quantum defence. See [docs/PLAN.md](docs/PLAN.md) for the architecture.
 
 ## Stack

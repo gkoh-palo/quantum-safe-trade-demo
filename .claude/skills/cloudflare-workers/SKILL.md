@@ -5,7 +5,7 @@ description: Cloudflare Workers patterns for this repo — wrangler config, Serv
 
 # Cloudflare Workers — repo conventions
 
-The demo is 5 Workers wired with bindings: `sentry`, `quantum`, `integration` (business
+The demo is 5 Workers wired with bindings: `keystone`, `helix`, `integration` (business
 flow) + `hacker`, `ui` (demo infra). Single environment, deployed from `main`. Always check
 current API with the **`/docs`** skill (Context7) or https://developers.cloudflare.com/workers
 before relying on memory — the platform moves fast.
@@ -17,7 +17,7 @@ One per worker in `workers/<name>/wrangler.jsonc`. Minimal shape:
 ```jsonc
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "qstd-sentry",
+  "name": "qstd-keystone",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"], // needed for noble/crypto + neon driver
@@ -37,20 +37,20 @@ for simple proxies.
 ```jsonc
 // caller (e.g. integration) wrangler.jsonc
 "services": [
-  { "binding": "SENTRY", "service": "qstd-sentry", "entrypoint": "SentryRpc" },
-  { "binding": "QUANTUM", "service": "qstd-quantum" }
+  { "binding": "KEYSTONE", "service": "qstd-keystone", "entrypoint": "KeystoneRpc" },
+  { "binding": "HELIX", "service": "qstd-helix" }
 ]
 ```
 
 ```ts
 // callee exposes RPC
 import { WorkerEntrypoint } from "cloudflare:workers";
-export class SentryRpc extends WorkerEntrypoint<Env> {
+export class KeystoneRpc extends WorkerEntrypoint<Env> {
   async receiveTrade(msg: WireMessage): Promise<Ack> {
     /* ... */
   }
 }
-// caller invokes: await env.SENTRY.receiveTrade(msg)  // typed, no HTTP
+// caller invokes: await env.KEYSTONE.receiveTrade(msg)  // typed, no HTTP
 ```
 
 > Bindings can't be man-in-the-middled — that's why the HNDL "tap" works by each sender
@@ -59,7 +59,7 @@ export class SentryRpc extends WorkerEntrypoint<Env> {
 
 ## Queues
 
-Async Sentry⇄Quantum handoff (`trade-migration`) and ciphertext fan-out (`harvest-tap`).
+Async Keystone⇄Helix handoff (`trade-migration`) and ciphertext fan-out (`harvest-tap`).
 
 ```jsonc
 "queues": {

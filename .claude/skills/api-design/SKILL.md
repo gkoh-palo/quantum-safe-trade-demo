@@ -1,6 +1,6 @@
 ---
 name: api-design
-description: REST/API conventions for the sentry, quantum, integration and ui (BFF) workers — resource naming, status codes, Zod validation, error envelope, pagination, idempotency, and the wire-message contract. Use when adding or changing any HTTP endpoint, RPC method, or request/response shape.
+description: REST/API conventions for the keystone, helix, integration and ui (BFF) workers — resource naming, status codes, Zod validation, error envelope, pagination, idempotency, and the wire-message contract. Use when adding or changing any HTTP endpoint, RPC method, or request/response shape.
 ---
 
 # API design — repo conventions
@@ -12,8 +12,8 @@ Endpoints are small and consistent across the three business Workers and the BFF
 
 | Worker        | Base       | Resources                                                |
 | ------------- | ---------- | -------------------------------------------------------- |
-| `sentry`      | `/trades`  | asset trades (loan, bond)                                |
-| `quantum`     | `/trades`  | liability trades (fx, irs, ccs)                          |
+| `keystone`    | `/trades`  | asset trades (loan, bond)                                |
+| `helix`       | `/trades`  | liability trades (fx, irs, ccs)                          |
 | `integration` | `/migrate` | queue-driven; minimal HTTP (health + manual replay)      |
 | `ui` (BFF)    | `/api/*`   | aggregation, admin controls, `/api/auth/*` (Better Auth) |
 
@@ -63,7 +63,7 @@ leak stack traces or secrets in `message`.
 
 ## Pagination & filtering
 
-Cursor or limit/offset: `GET /trades?limit=50&cursor=<id>&system=sentry`. Always cap `limit`
+Cursor or limit/offset: `GET /trades?limit=50&cursor=<id>&system=keystone`. Always cap `limit`
 (default 50, max 200). Return `nextCursor` when more exist.
 
 ## Idempotency
@@ -80,10 +80,10 @@ consumer and the hacker read it.
 ```ts
 interface WireMessage {
   id: string;
-  fromService: "sentry" | "quantum";
-  toService: "sentry" | "quantum";
+  fromService: "keystone" | "helix";
+  toService: "keystone" | "helix";
   scheme: SchemeKey; // see /crypto registry
-  eraAtSend: "classical" | "quantum";
+  eraAtSend: "classical" | "helix";
   ciphertext: Uint8Array;
   nonce?: Uint8Array;
   encapsulatedKey?: Uint8Array; // KEM ct (ecdh/hybrid)

@@ -75,7 +75,7 @@ await db.transaction(async (tx) => {
 await pool.end();
 ```
 
-The Sentry⇄Quantum migration (insert mapping + target trade together) is the main place a
+The Keystone⇄Helix migration (insert mapping + target trade together) is the main place a
 transaction matters.
 
 ## Seeding

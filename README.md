@@ -1,41 +1,74 @@
 # Quantum-Safe Trade Migration Demo
 
-A live, deployable simulation that demonstrates the **Harvest-Now-Decrypt-Later (HNDL)**
-threat against inter-system trade flows — and how **post-quantum cryptography (PQC)**
-defeats it. Built for a pre-sales pitch with an interactive admin control plane.
+A live, deployable demo of the **Harvest-Now-Decrypt-Later (HNDL)** threat against
+inter-system trade flows — and how **post-quantum cryptography** defeats it. It pairs a
+cinematic pitch view with real, logged-in trade booking on two independent systems.
 
-## The story (one paragraph)
+## Walkthrough video
+
+> 📹 _Walkthrough video coming soon._
+>
+> <!-- Add the walkthrough here, e.g.  [![Watch the walkthrough](docs/video-thumb.png)](VIDEO_URL)  -->
+
+## The story
 
 Two vendor systems exchange trades through an integration layer:
 
-- **Sentry** — executes **asset** trades (Loans, Bonds)
-- **Quantum** — executes **liability** trades (FX, IRS, CCS)
-- **Integration Layer** — maps & migrates trades **Sentry ↔ Quantum**
+- **Keystone** — books **asset** trades (loans, bonds).
+- **Helix** — books **liability** trades (FX, interest-rate swaps, cross-currency swaps).
+- An **integration layer** maps and migrates trades between the two.
 
-A passive attacker, **Eve**, taps the wire between the services. She cannot break the
-encryption _today_, so she just **records every encrypted payload** into her own loot
-database. Years later, when a cryptographically-relevant quantum computer (CRQC) exists,
-she replays the archive and **decrypts it retroactively** — exposing notionals,
-counterparties and rates that were supposed to stay confidential for a decade.
+A passive attacker, **Eve**, taps the wire between the services. She can't break today's
+encryption, so she simply records every encrypted payload into her own store. Years later,
+once a cryptographically-relevant quantum computer exists, she replays the archive and
+decrypts it after the fact — exposing notionals, counterparties, and rates that were meant
+to stay confidential for a decade.
 
-The demo lets a presenter **toggle the protection scheme** (plaintext → hash → classical
-RSA/ECDH → **hybrid X25519 + ML-KEM**) and **advance the world into the quantum era** to
-show, live, which harvested traffic Eve can read and which stays opaque.
+The demo lets you switch the protection scheme (plaintext → hashing → classical RSA/ECDH →
+a hybrid X25519 + ML-KEM handshake) and then advance the world into the quantum era to show,
+live, which harvested traffic Eve can read and which stays sealed.
+
+## Try it live
+
+| What                          | Where                                   | Sign in with                           |
+| ----------------------------- | --------------------------------------- | -------------------------------------- |
+| Pitch view                    | https://qstd-ui.gkoh.workers.dev/       | — (public)                             |
+| Admin control plane           | https://qstd-ui.gkoh.workers.dev/admin  | break-glass token                      |
+| Keystone — book asset trades  | https://qstd-keystone.gkoh.workers.dev/ | `demo@keystone.local` / `password1234` |
+| Helix — book liability trades | https://qstd-helix.gkoh.workers.dev/    | `demo@helix.local` / `password1234`    |
+
+Full walkthrough and operator notes: **[docs/PLAYBOOK.md](docs/PLAYBOOK.md)**.
 
 ## What's real here
 
-- **Real PQC** — `@noble/post-quantum` (ML-KEM-768, ML-DSA-65), `@noble/curves`
-  (X25519, P-256), WebCrypto (RSA-OAEP, AES-GCM). No mocked handshakes.
-- **Live database** — Neon Postgres, holding trades, mappings, harvested packets and audit log.
-- **Live deployment** — 5 Cloudflare Workers wired with Service Bindings, a Queue for
-  async migration, Durable Objects for the harvest archive and the "epoch clock", and
-  Cron Triggers driving a live trade feed.
-- **Two front-ends** — a cinematic **Pitch** view and an **Admin** control plane.
+- **Real post-quantum crypto** — `@noble/post-quantum` (ML-KEM-768, ML-DSA-65),
+  `@noble/curves` (X25519, P-256), and WebCrypto (RSA-OAEP, AES-GCM). No mocked handshakes.
+  When the demo "breaks" classical traffic it really does (Shor-style, on shrunken keys in
+  the genuine mode); the hybrid post-quantum scheme genuinely never breaks.
+- **Real auth** — each system has its own email-and-password login (Better Auth), so the
+  trade-booking screens are gated like a real product. Accounts are seeded by an operator.
+- **Live database** — Neon Postgres holding trades, migration mappings, the harvested
+  packets, and an audit trail.
+- **Live deployment** — five Cloudflare Workers wired with service bindings, queues for
+  async migration, durable objects for the harvest archive and the era clock, and cron
+  triggers that keep a trade feed running on their own.
 
-## Where to start
+## The systems
 
-- **[docs/PLAN.md](docs/PLAN.md)** — the full build plan: architecture, data model,
-  crypto matrix, repo layout, deployment, and milestones.
-- **[docs/DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md)** — the exact pre-sales walkthrough.
+Keystone and Helix are standalone, authenticated products that each serve their own booking
+UI and expose a plain HTTP trade API, so another team can build a further quantum-safe layer
+on either one without touching the demo. Every booked trade flows through the real encrypt →
+wire → harvest → migrate path, so it shows up in the pitch immediately.
 
-> Status: **planning**. No code scaffolded yet — this repo currently holds the design.
+## Docs
+
+- **[docs/PLAYBOOK.md](docs/PLAYBOOK.md)** — how to use the services and how to run a demo.
+- **[docs/DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md)** — the narrated pre-sales walkthrough.
+- **[docs/PLAN.md](docs/PLAN.md)** — architecture, data model, crypto matrix, deployment.
+
+## Stack
+
+Cloudflare Workers (service bindings, queues, durable objects, cron) · TypeScript (ESM,
+strict) · Neon Postgres + Drizzle · Better Auth · React + Vite · pnpm workspaces.
+
+Status: **live and deployed.**

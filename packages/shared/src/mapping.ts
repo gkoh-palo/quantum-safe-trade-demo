@@ -1,4 +1,4 @@
-// Sentry⇄Quantum migration mapping (PLAN §1/§8). The integration layer opens a trade
+// Keystone⇄Helix migration mapping (PLAN §1/§8). The integration layer opens a trade
 // from one system and re-books it into the other — translating the product into that
 // system's taxonomy while **preserving the instrument's asset/liability class**. This
 // is a product-code translation between two vendor systems, not an economic transform.
@@ -7,11 +7,11 @@ import { productToAssetClass } from "./trades.js";
 
 export const MAPPING_RULES_VERSION = "v2";
 
-export type MigrationDirection = "sentry->quantum" | "quantum->sentry";
+export type MigrationDirection = "keystone->helix" | "helix->keystone";
 
 // Each product's label in the other system, for the same underlying instrument:
-//   Sentry assets → Quantum:   loan → money-market, bond → security
-//   Quantum liabilities → Sentry: fx → currency-forward, irs → interest-rate-swap,
+//   Keystone assets → Helix:   loan → money-market, bond → security
+//   Helix liabilities → Keystone: fx → currency-forward, irs → interest-rate-swap,
 //                                  ccs → cross-currency-swap
 // Target products map back to their origin so a migrated trade round-trips.
 const PRODUCT_MAP: Record<Product, Product> = {
@@ -35,10 +35,10 @@ export interface MappingResult {
 
 /** Map a persisted trade into the equivalent trade on the other system. */
 export function mapTrade(source: Trade): MappingResult {
-  const targetSystem: System = source.system === "sentry" ? "quantum" : "sentry";
+  const targetSystem: System = source.system === "keystone" ? "helix" : "keystone";
   const targetProduct = PRODUCT_MAP[source.product];
   return {
-    direction: source.system === "sentry" ? "sentry->quantum" : "quantum->sentry",
+    direction: source.system === "keystone" ? "keystone->helix" : "helix->keystone",
     rulesVersion: MAPPING_RULES_VERSION,
     target: {
       system: targetSystem,

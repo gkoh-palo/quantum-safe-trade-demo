@@ -10,7 +10,7 @@ describe("wire envelope <-> sealed message round-trip", () => {
     const keys = await generateEncryptionKeys("rsa-oaep", "projected");
     const sealed = await seal("rsa-oaep", utf8Encode(payload), keys);
 
-    const env = sealedToEnvelope("wm-1", "sentry", "quantum", "classical", sealed);
+    const env = sealedToEnvelope("wm-1", "keystone", "helix", "classical", sealed);
     expect(env.scheme).toBe("rsa-oaep");
     expect(env.nonceHex).not.toBeNull();
     expect(env.encapsulatedKeyHex).not.toBeNull();
@@ -23,7 +23,7 @@ describe("wire envelope <-> sealed message round-trip", () => {
     const keys = await generateEncryptionKeys("plaintext", "genuine");
     const sealed = await seal("plaintext", utf8Encode(payload), keys);
 
-    const env = sealedToEnvelope("wm-2", "quantum", "sentry", "classical", sealed);
+    const env = sealedToEnvelope("wm-2", "helix", "keystone", "classical", sealed);
     expect(env.nonceHex).toBeNull();
     expect(env.encapsulatedKeyHex).toBeNull();
     expect(utf8Decode(await open(envelopeToSealed(env), keys))).toBe(payload);

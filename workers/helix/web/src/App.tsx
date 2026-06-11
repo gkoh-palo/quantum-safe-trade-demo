@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { auth, trades, fmtMoney, type SessionUser, type Trade } from "./api";
 
-// System-specific config — this is the same app as the Sentry booking UI with a
+// System-specific config — this is the same app as the Keystone booking UI with a
 // different SYSTEM block (liability products).
 const SYSTEM = {
-  name: "Quantum",
+  name: "Helix",
   tagline: "Liability trade booking",
   products: [
     ["fx", "FX"],
     ["irs", "IRS"],
     ["ccs", "CCS"],
   ] as const,
-  demoEmail: "demo@quantum.local",
+  demoEmail: "demo@helix.local",
 };
 
 export function App() {

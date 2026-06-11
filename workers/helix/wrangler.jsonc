@@ -1,24 +1,23 @@
 {
-  // qstd-sentry — asset-trade API (loans, bonds). See PLAN §3 resource map.
+  // qstd-helix — liability-trade API (FX, IRS, CCS). See PLAN §3 resource map.
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "qstd-sentry",
+  "name": "qstd-helix",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   // nodejs_compat is required for @noble/* crypto and the Neon serverless driver.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
-  // On trade create we seal the payload and fan it out: trade-migration (the legit
-  // Sentry⇄Quantum handoff, consumed by integration in M5) + harvest-tap (Eve's
-  // ciphertext mirror, consumed by hacker). Queues must exist: `wrangler queues create`.
+  // Helix also originates migrations (helix→keystone): seal + fan out to the same
+  // two queues. Queues must exist: `wrangler queues create`.
   "queues": {
     "producers": [
       { "binding": "MIGRATION", "queue": "trade-migration" },
       { "binding": "HARVEST_TAP", "queue": "harvest-tap" },
     ],
   },
-  // Phase 2: serve the React booking app (workers/sentry/web) as static assets. The
+  // Phase 2: serve the React booking app (workers/helix/web) as static assets. The
   // Worker handles /api/auth/*, /trades and /health; the assets binding does SPA
-  // fallback for everything else. Built to web/dist by `pnpm --filter @qstd/sentry build`.
+  // fallback. Built to web/dist by `pnpm --filter @qstd/helix build`.
   "assets": {
     "directory": "./web/dist",
     "binding": "ASSETS",

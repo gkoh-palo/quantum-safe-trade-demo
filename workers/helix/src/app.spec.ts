@@ -38,20 +38,20 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
 // .json() is typed `unknown` under types:["node"]; read dynamic shapes as `any`.
 const json = async (res: Response): Promise<any> => res.json();
 
-describe("qstd-quantum trades API", () => {
+describe("qstd-helix trades API", () => {
   it("GET /health", async () => {
     const res = await app.request("/health");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ service: "quantum", status: "ok" });
+    expect(await res.json()).toEqual({ service: "helix", status: "ok" });
   });
 
   it("POST /trades creates a liability trade (201) and emits it to the wire", async () => {
     const res = await post(irs);
     expect(res.status).toBe(201);
     const trade = await json(res);
-    expect(trade).toMatchObject({ system: "quantum", assetClass: "liability", product: "irs" });
+    expect(trade).toMatchObject({ system: "helix", assetClass: "liability", product: "irs" });
     expect(wire.emitted).toHaveLength(1);
-    expect(wire.emitted[0]).toMatchObject({ id: trade.id, system: "quantum" });
+    expect(wire.emitted[0]).toMatchObject({ id: trade.id, system: "helix" });
   });
 
   it("rejects an asset product (bond) — wrong system — with 400", async () => {
@@ -72,6 +72,6 @@ describe("qstd-quantum trades API", () => {
     const res = await app.request("/trades");
     const body = await json(res);
     expect(body.data).toHaveLength(1);
-    expect(body.data[0].system).toBe("quantum");
+    expect(body.data[0].system).toBe("helix");
   });
 });

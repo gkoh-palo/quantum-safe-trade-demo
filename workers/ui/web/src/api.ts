@@ -33,7 +33,7 @@ export interface Scorecard {
 
 export interface Trade {
   id: string;
-  system: "sentry" | "quantum";
+  system: "keystone" | "helix";
   assetClass: "asset" | "liability";
   product: string;
   counterparty: string;
@@ -48,8 +48,8 @@ export interface Trade {
 
 export interface WireSummary {
   id: string;
-  fromService: "sentry" | "quantum";
-  toService: "sentry" | "quantum";
+  fromService: "keystone" | "helix";
+  toService: "keystone" | "helix";
   scheme: string;
   eraAtSend: string;
   createdAt: string;
@@ -131,7 +131,7 @@ export interface InspectedPacket {
 }
 
 export interface InjectTrade {
-  system: "sentry" | "quantum";
+  system: "keystone" | "helix";
   product: string;
   counterparty: string;
   notional: number;
@@ -193,7 +193,7 @@ export const ENCRYPTION_SCHEME_KEYS = [
   "hybrid-mlkem",
 ] as const;
 
-export const SYSTEM_PRODUCTS: Record<"sentry" | "quantum", string[]> = {
-  sentry: ["loan", "bond"],
-  quantum: ["fx", "irs", "ccs"],
+export const SYSTEM_PRODUCTS: Record<"keystone" | "helix", string[]> = {
+  keystone: ["loan", "bond"],
+  helix: ["fx", "irs", "ccs"],
 };

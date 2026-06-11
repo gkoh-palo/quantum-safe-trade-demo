@@ -71,14 +71,14 @@ milestone list below is a snapshot, not the authority.
    - **M0 Scaffolding** — `pnpm-workspace.yaml`, root `package.json` workspaces, `turbo.json`,
      5 `wrangler.*` under `workers/*`, `.github/workflows/*`, Neon project (can't verify from
      repo — note as external).
-   - **M1 Data + trades** — `packages/db` drizzle schema + migrations + seed; `sentry` &
-     `quantum` workers with trade CRUD.
+   - **M1 Data + trades** — `packages/db` drizzle schema + migrations + seed; `keystone` &
+     `helix` workers with trade CRUD.
    - **M2 Crypto registry** — `packages/crypto` SchemeRegistry with all §5 schemes
      (seal/open/sign/verify/break) **and** round-trip + PQC-resistance tests (gate item).
    - **M3 Wire + harvest** — `wire_messages` table, `trade-migration` + `harvest-tap` queues,
      `HarvestArchive` DO.
    - **M4 Break + era** — `EpochClock` DO, break engine (genuine + projected), scorecard query.
-   - **M5 Integration mapper** — Sentry⇄Quantum mapping rules, bidirectional queue migration.
+   - **M5 Integration mapper** — Keystone⇄Helix mapping rules, bidirectional queue migration.
    - **M6 Pitch UI** — `workers/ui/web` /pitch: live wire, HNDL timeline, the switch, scorecard.
    - **M7 Admin UI** — /admin: scheme + break-mode + CRQC controls, trade injector, inspector,
      Better Auth gating (§11).

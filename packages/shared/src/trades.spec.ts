@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  QUANTUM_PRODUCTS,
-  SENTRY_PRODUCTS,
+  HELIX_PRODUCTS,
+  KEYSTONE_PRODUCTS,
   clampLimit,
   makeCreateTradeSchema,
   productToAssetClass,
@@ -14,8 +14,8 @@ describe("trade domain helpers", () => {
   it("maps products to asset class and owning system", () => {
     expect(productToAssetClass("loan")).toBe("asset");
     expect(productToAssetClass("ccs")).toBe("liability");
-    expect(systemForProduct("bond")).toBe("sentry");
-    expect(systemForProduct("fx")).toBe("quantum");
+    expect(systemForProduct("bond")).toBe("keystone");
+    expect(systemForProduct("fx")).toBe("helix");
   });
 
   it("clampLimit defaults to 50 and caps at 200", () => {
@@ -37,25 +37,25 @@ describe("trade domain helpers", () => {
         tenor: "5Y",
         status: "active",
       },
-      "sentry",
+      "keystone",
     );
-    expect(input).toMatchObject({ system: "sentry", assetClass: "asset", currency: "EUR" });
+    expect(input).toMatchObject({ system: "keystone", assetClass: "asset", currency: "EUR" });
     expect(input.tradeDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it("randomTradeBody produces a valid trade for the system (cron feed)", () => {
     for (let i = 0; i < 30; i++) {
-      const s = randomTradeBody("sentry");
-      expect(SENTRY_PRODUCTS).toContain(s.product);
+      const s = randomTradeBody("keystone");
+      expect(KEYSTONE_PRODUCTS).toContain(s.product);
       expect(s.notional).toBeGreaterThanOrEqual(5_000_000);
       expect(s.currency).toHaveLength(3);
-      const q = randomTradeBody("quantum");
-      expect(QUANTUM_PRODUCTS).toContain(q.product);
+      const q = randomTradeBody("helix");
+      expect(HELIX_PRODUCTS).toContain(q.product);
     }
   });
 
   it("the create schema restricts products to the worker's system", () => {
-    const schema = makeCreateTradeSchema(SENTRY_PRODUCTS);
+    const schema = makeCreateTradeSchema(KEYSTONE_PRODUCTS);
     expect(
       schema.safeParse({
         product: "bond",
