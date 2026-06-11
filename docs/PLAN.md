@@ -116,6 +116,7 @@ trades(
   counterparty text, notional numeric, currency text,
   rate numeric, tenor text, trade_date date, status text,
   payload_json jsonb,                          -- canonical trade body
+  booked_by text,                              -- Phase 2: the system's user who booked it (blotter scope)
   created_at
 )
 
@@ -396,13 +397,13 @@ token + the migration DB URL.
 2. **Mapping fidelity** — how realistic should Sentry⇄Quantum field mapping be? (Mirror the
    real cc-integrations asset/liability mappings, or a representative subset?)
 3. **Branding** — neutral demo branding, or skinned for a specific prospect?
-4. **Phase 2 — user/role model** — do booking users need roles (e.g. booker vs viewer), or is
-   "any logged-in user can book on this system" enough for the POC?
-5. **Phase 2 — trade ownership** — should the blotter scope to the logged-in user's own trades,
-   or show the whole system's book? (Add a `booked_by` column to `trades` if per-user.)
-6. **Phase 2 — sign-up** — open self-registration, or admin-seeded accounts only?
-7. **Phase 2 — what the other team consumes** — do they build on the **HTTP API** (auth +
-   `POST /trades`) or also need typed **service-binding / RPC** entrypoints?
+4. ✅ **Phase 2 — user/role model** → **no roles.** Any logged-in user can book on the system.
+5. ✅ **Phase 2 — trade ownership** → **per-user blotter.** `trades.booked_by` records the booker;
+   the booking UI shows that user's own trades. (The pitch view still sees the whole book.)
+6. ✅ **Phase 2 — sign-up** → **admin-seeded accounts only.** No public self-registration; seed
+   demo users per system (disable Better Auth sign-up, provision via seed/CLI).
+7. ✅ **Phase 2 — what the other team consumes** → the **HTTP API** (auth + Zod `POST /trades`).
+   Universal (any stack/browser/cloud); no RPC/service-binding entrypoints planned.
 
 ---
 
@@ -418,12 +419,18 @@ quantum-safe POC layer** on either one independently.
 2. Both are **loginable via Better Auth**.
 3. Logged-in users can **interact with both systems to book trades**.
 
-**Decisions taken** (see §7 booking UIs, §9 M10–M12, §11a):
+**Decisions taken** (see §7 booking UIs, §9 M10–M12, §11a, §13 Q4–Q7):
 
 - **UI placement:** each business worker **serves its own** booking UI (standalone systems), not
   a shared front-end. → `workers/sentry/web`, `workers/quantum/web`.
 - **Auth:** **separate Better Auth per system** (Sentry login ≠ Quantum login), namespaced
   Drizzle tables on the shared Neon DB.
+- **Roles:** none — **any logged-in user can book** on that system.
+- **Blotter:** **per-user** — `trades.booked_by` records the booker; the UI shows the user's own
+  trades (the pitch view still sees the whole book).
+- **Accounts:** **admin-seeded only**, no public self-registration (disable Better Auth sign-up).
+- **Contract for the other team:** the **HTTP API** (auth + Zod `POST /trades`) — universal, any
+  stack/browser/cloud; no RPC entrypoints planned.
 
 **Implications / notes:**
 

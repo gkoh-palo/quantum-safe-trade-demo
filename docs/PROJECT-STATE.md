@@ -26,8 +26,10 @@ products — **each serves its own trade-booking UI** behind **its own Better Au
 login per system), so users can book trades and a separate team can layer a quantum-safe POC on
 either. Milestones **M10** (per-system Better Auth, namespaced tables), **M11** (Sentry booking
 UI), **M12** (Quantum booking UI). Not started. Booking reuses the existing `POST /trades`
-seal/emit path — no new backend pipeline. (Optional backlog: **M7b** admin Better Auth, **M9**
-copy/rehearsal polish.)
+seal/emit path — no new backend pipeline. **Decisions locked (PLAN §14):** no roles (any
+logged-in user can book), per-user blotter via a new `trades.booked_by`, admin-seeded accounts
+(no self sign-up), HTTP API as the contract (no RPC). (Optional backlog: **M7b** admin Better
+Auth, **M9** copy/rehearsal polish.)
 
 **Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
 DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`. The pitch UI
