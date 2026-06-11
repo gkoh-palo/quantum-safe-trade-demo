@@ -52,7 +52,7 @@ shows up in the pitch view and is subject to the break engine.
 
 Public, read-only, auto-refreshing. Shows:
 
-- **Era badge** — _Classical_ (today) or _Helix_ (CRQC has arrived).
+- **Era badge** — _Classical_ (today) or _Quantum_ (CRQC has arrived).
 - **Headline metrics** — trades booked, harvested by Eve, migrations, **notional exposed**.
 - **⚛ Advance to the Quantum Era** — the lever: jumps to the quantum era **and** runs Eve's
   break pass in one click. **Reset to Today** rewinds (re-locks the loot for a repeatable demo).
@@ -68,7 +68,7 @@ Paste the admin token, then:
 | Control              | What it does                                                                        |
 | -------------------- | ----------------------------------------------------------------------------------- |
 | **Active scheme**    | Set the encryption scheme + **break mode** (`genuine` / `projected`). Rotates keys. |
-| **CRQC countdown**   | Slide 0–100% and **Set** — drives `projected`-mode breaks (100% = helix arrives).   |
+| **CRQC countdown**   | Slide 0–100% and **Set** — drives `projected`-mode breaks (100% = quantum arrives). |
 | **Inject a trade**   | Book a trade into Keystone/Helix via service binding (no login needed — internal).  |
 | **Auto-mode (cron)** | Toggle **Trade generator** (a trade/min) and **CRQC auto-tick** (countdown climbs). |
 | **Clear archive**    | Wipe all trades / wire / loot for a clean slate (start-over button).                |

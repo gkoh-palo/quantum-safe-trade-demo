@@ -83,7 +83,7 @@ interface WireMessage {
   fromService: "keystone" | "helix";
   toService: "keystone" | "helix";
   scheme: SchemeKey; // see /crypto registry
-  eraAtSend: "classical" | "helix";
+  eraAtSend: "classical" | "quantum";
   ciphertext: Uint8Array;
   nonce?: Uint8Array;
   encapsulatedKey?: Uint8Array; // KEM ct (ecdh/hybrid)

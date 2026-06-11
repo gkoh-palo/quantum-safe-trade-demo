@@ -84,7 +84,7 @@ travels on the wire.
 | Worker            | `ui`              | Pitch + admin React app + BFF/control endpoints                                   |
 | Queue             | `trade-migration` | Async Keystone⇄Helix handoff (producer: keystone/helix, consumer: integration)    |
 | Queue             | `harvest-tap`     | Fan-out of ciphertext to the hacker (decouples capture from break)                |
-| Durable Object    | `EpochClock`      | Single global era state (classical/helix) + CRQC progress %                       |
+| Durable Object    | `EpochClock`      | Single global era state (classical/quantum) + CRQC progress %                     |
 | Durable Object    | `HarvestArchive`  | Append-only loot log, break orchestration, per-key cache                          |
 | Cron              | `*/1 * * * *`     | `trade-generator` — emits random trades to keep the feed live                     |
 | Cron              | `*/2 * * * *`     | `epoch-tick` — advances CRQC progress when in auto mode                           |
@@ -102,7 +102,7 @@ their own auth; see §11/§14).
 -- current security posture (single active row, versioned for audit)
 crypto_config(
   id, active boolean, scheme text,            -- see §5 scheme matrix
-  era text,                                    -- 'classical' | 'helix'
+  era text,                                    -- 'classical' | 'quantum'
   crqc_progress int,                           -- 0..100, drives the break
   kem_public_key bytea, kem_secret_ref text,   -- ML-KEM keypair handle
   classical_pub bytea, classical_priv_size int,-- RSA/ECDH (priv kept server-side)
@@ -157,7 +157,7 @@ Neon driver: `@neondatabase/serverless` + `drizzle-orm/neon-http`. Migrations wi
 Admin selects the **active scheme**; it governs how `integration`/`keystone`/`helix`
 protect each wire message. Each scheme has a defined _break outcome_ in the quantum era.
 
-| Scheme key     | Construction                             | Confidentiality     | Helix-safe?         | Helix-era outcome                              |
+| Scheme key     | Construction                             | Confidentiality     | Quantum-safe?       | Quantum-era outcome                            |
 | -------------- | ---------------------------------------- | ------------------- | ------------------- | ---------------------------------------------- |
 | `plaintext`    | none                                     | ❌ none             | n/a                 | readable immediately (baseline shock)          |
 | `sha256`       | hash of payload only                     | ❌ none (integrity) | n/a                 | teaches **hash ≠ encryption** — still readable |
