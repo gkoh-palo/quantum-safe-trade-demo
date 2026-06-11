@@ -11,6 +11,7 @@ interface Env {
   readonly NEON_DATABASE_URL: string;
   readonly BETTER_AUTH_SECRET: string;
   readonly BETTER_AUTH_URL: string;
+  readonly INTERNAL_TOKEN?: string;
   readonly MIGRATION: QueueProducer<MigrationMessage>;
   readonly HARVEST_TAP: QueueProducer<HarvestMessage>;
 }
@@ -31,6 +32,11 @@ export default {
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
     });
-    return createApp({ trades: drizzleTradesRepository(db), wire, auth }).fetch(request);
+    return createApp({
+      trades: drizzleTradesRepository(db),
+      wire,
+      auth,
+      internalToken: env.INTERNAL_TOKEN,
+    }).fetch(request);
   },
 };

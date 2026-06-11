@@ -17,12 +17,25 @@ import type { Collection, Trade } from "@qstd/shared";
 const SYSTEM = "sentry" as const;
 const CreateTrade = makeCreateTradeSchema(SENTRY_PRODUCTS);
 
+/** The Workers Assets binding — structural so we don't pull in @cloudflare/workers-types. */
+export interface AssetFetcher {
+  fetch(request: Request): Response | Promise<Response>;
+}
+
 export interface AppDeps {
   trades: TradesRepository;
   /** Optional: seals + fans the new trade out to the queues. Omitted in pure CRUD tests. */
   wire?: WireEmitter;
   /** Optional: per-system Better Auth. When present, booking requires a session. */
   auth?: AuthProvider;
+  /** Optional: the static booking app. When present, unmatched routes serve the SPA. */
+  assets?: AssetFetcher;
+  /**
+   * Optional shared secret for trusted internal callers (the ui injector + cron
+   * trade-generator reach POST /trades via service bindings, with no user session).
+   * A matching `x-internal-token` header bypasses the user-auth gate (PLAN §14).
+   */
+  internalToken?: string;
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -36,8 +49,10 @@ export function createApp(deps: AppDeps): Hono {
   }
 
   app.post("/trades", async (c) => {
+    const internal =
+      !!deps.internalToken && c.req.header("x-internal-token") === deps.internalToken;
     let bookedBy: string | null = null;
-    if (deps.auth) {
+    if (!internal && deps.auth) {
       const user = await deps.auth.requireUser(c.req.raw);
       if (!user) return c.json(errorBody("UNAUTHENTICATED", "Log in to book a trade"), 401);
       bookedBy = user.id;
@@ -90,6 +105,12 @@ export function createApp(deps: AppDeps): Hono {
     const trade = await deps.trades.get(c.req.param("id"));
     if (!trade) return c.json(errorBody("NOT_FOUND", "Trade not found"), 404);
     return c.json(trade);
+  });
+
+  // Unmatched routes → the booking SPA (assets binding), or a JSON 404 in tests.
+  app.notFound((c) => {
+    if (deps.assets) return deps.assets.fetch(c.req.raw);
+    return c.json(errorBody("NOT_FOUND", "Unknown endpoint"), 404);
   });
 
   app.onError((err, c) => {

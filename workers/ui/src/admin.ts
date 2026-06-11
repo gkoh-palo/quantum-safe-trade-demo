@@ -11,6 +11,7 @@ import type { EpochClock } from "./epoch-clock.js";
 export interface AdminEnv {
   readonly NEON_DATABASE_URL: string;
   readonly ADMIN_TOKEN?: string;
+  readonly INTERNAL_TOKEN?: string;
   readonly EPOCH: DurableObjectNamespace<EpochClock>;
   readonly SENTRY: Fetcher;
   readonly QUANTUM: Fetcher;
@@ -95,12 +96,10 @@ export async function handleAdmin(
   if (pathname === "/api/admin/trade" && method === "POST") {
     const body = (await request.json().catch(() => ({}))) as { system?: string };
     const target = body.system === "quantum" ? env.QUANTUM : env.SENTRY;
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (env.INTERNAL_TOKEN) headers["x-internal-token"] = env.INTERNAL_TOKEN;
     const res = await target.fetch(
-      new Request("https://svc/trades", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }),
+      new Request("https://svc/trades", { method: "POST", headers, body: JSON.stringify(body) }),
     );
     return new Response(await res.text(), {
       status: res.status,

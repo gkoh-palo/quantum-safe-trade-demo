@@ -141,6 +141,27 @@ describe("qstd-sentry auth gating (Phase 2)", () => {
     expect((await json(res)).bookedBy).toBe("u-1");
   });
 
+  it("internal token bypasses the gate (ui injector / cron) with no booked_by", async () => {
+    const app = createApp({ trades: repo(), auth: new FakeAuth(null), internalToken: "s3cret" });
+    const res = await app.request("/trades", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-internal-token": "s3cret" },
+      body: JSON.stringify(bond),
+    });
+    expect(res.status).toBe(201);
+    expect((await json(res)).bookedBy).toBeNull();
+  });
+
+  it("a wrong internal token still requires a session (401)", async () => {
+    const app = createApp({ trades: repo(), auth: new FakeAuth(null), internalToken: "s3cret" });
+    const res = await app.request("/trades", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-internal-token": "nope" },
+      body: JSON.stringify(bond),
+    });
+    expect(res.status).toBe(401);
+  });
+
   it("GET /trades?mine=1 scopes to the logged-in user", async () => {
     const trades = repo();
     const app = createApp({ trades, auth: new FakeAuth({ id: "u-1", email: "e", name: "n" }) });

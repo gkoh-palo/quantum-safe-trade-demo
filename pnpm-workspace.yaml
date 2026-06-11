@@ -1,4 +1,4 @@
 packages:
   - "packages/*"
   - "workers/*"
-  - "workers/ui/web"
+  - "workers/*/web"
