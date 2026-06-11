@@ -12,6 +12,12 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-11 — User playbook (`docs/PLAYBOOK.md`).** A practical operator guide: Part 1 — using
+  the services (surfaces + URLs, logins, booking on Sentry/Quantum, the pitch view, the admin
+  control plane, what the pipeline does on book); Part 2 — running a demo (pre-flight checklist, an
+  ~8-min beat-by-beat runbook incl. live booking, failure toggles, reset-between-runs), plus a
+  schemes/break-modes/troubleshooting appendix. Cross-linked with the narrated
+  [DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md).
 - **2026-06-11 — M12 Quantum booking UI (Phase 2 complete).** The same config-driven booking app
   on the `quantum` worker — login (Better Auth) → book **liability** trades (FX/IRS/CCS) → per-user
   blotter — served from the quantum worker's own assets binding, with a distinct accent so the two
