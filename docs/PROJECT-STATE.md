@@ -5,7 +5,7 @@
 > changes** (alongside a [CHANGELOG.md](../CHANGELOG.md) entry). Keep it short and current;
 > design detail lives in [PLAN.md](PLAN.md).
 
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-11
 
 ## What this is
 
@@ -16,11 +16,20 @@ A live, deployable demo of the **Harvest-Now-Decrypt-Later** threat against a Se
 
 ## Phase
 
-**M0–M7 merged + deployed live (+ keyring-rotation fix); M8 done — in review.** Full demo +
-admin control plane + the **cron feeds** (auto-mode trade-generator + epoch-tick) so it runs
-hands-off. The keyring-stability fix (PR #13) resolved the "$0 / RSA looks safe" bug; verified
-live. Remaining: **M7b** (Better Auth, replace the token gate) and **M9** (captions, demo
-rehearsal — full-reset already shipped as admin "Clear archive"). The core build is complete.
+**Phase 1 (M0–M8) complete + deployed live; build paused here.** The full HNDL demo — data,
+crypto, wire+harvest, break+era, migration, pitch UI, token-gated admin control plane, and
+self-running cron feeds — all green and verified in production (incl. the keyring-rotation fix,
+PR #13, that resolved the "$0 / RSA looks safe" bug).
+
+**Phase 2 queued (new requirements — see PLAN §14):** turn Sentry & Quantum into standalone
+products — **each serves its own trade-booking UI** behind **its own Better Auth** (separate
+login per system), so users can book trades and a separate team can layer a quantum-safe POC on
+either. Milestones **M10** (per-system Better Auth, namespaced tables), **M11** (Sentry booking
+UI), **M12** (Quantum booking UI). Not started. Booking reuses the existing `POST /trades`
+seal/emit path — no new backend pipeline. **Decisions locked (PLAN §14):** no roles (any
+logged-in user can book), per-user blotter via a new `trades.booked_by`, admin-seeded accounts
+(no self sign-up), HTTP API as the contract (no RPC). (Optional backlog: **M7b** admin Better
+Auth, **M9** copy/rehearsal polish.)
 
 **Live ops state:** queues created; `NEON_DATABASE_URL` on sentry/quantum/hacker/ui;
 DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`. The pitch UI
@@ -52,8 +61,10 @@ stay 0).
   Two honest break modes: `genuine` (small keys, real live break) vs `projected` (real keys,
   simulated countdown). **Never claim to break a real PQC scheme.**
 - **DB:** Neon Postgres + Drizzle (`neon-http` driver; `Pool` only for transactions).
-- **Auth:** Better Auth in the `ui` BFF, Drizzle adapter on Neon, email+password, gates `/admin`.
-- **Frontend:** React + Vite served from `ui` worker (Pitch view + Admin view).
+- **Auth:** admin (`/admin` in `ui`) is `ADMIN_TOKEN`-gated today (M7). **Phase 2:** separate
+  Better Auth per business system (Sentry login ≠ Quantum login), namespaced Drizzle tables.
+- **Frontend:** React + Vite. `ui` serves Pitch + Admin; **Phase 2:** `sentry` & `quantum` each
+  serve their own booking UI from their own Workers Assets binding.
 - **Env/CD:** one environment, deployed straight from `main`. pnpm, Node 22, ESM, TS strict.
 
 ## Environment / secrets
@@ -94,10 +105,20 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
    trade injector via service bindings, raw inspector), token-gated by `ADMIN_TOKEN`.
 9. ✅ **M8 cron feeds** — `trade-generator` + `epoch-tick` Cron Triggers on `ui`, gated by
    `auto_generate` / `auto_tick` (migration `0003`), with admin toggles. Hands-off demo.
-10. **M7b**: Better Auth — replace the token gate with email+password sessions (Drizzle adapter,
-    generated tables, seeded admin), gate `/admin` + the admin routes.
-11. **M9**: polish — captions, demo-script rehearsal, fallbacks. (Full archive reset already
-    shipped as the admin "Clear archive".)
+   **— Phase 1 (M0–M8) complete here. —**
+
+**Phase 2 (PLAN §14) — trade-booking product, not started:**
+
+10. **M10 per-system auth**: Better Auth on `sentry` **and** `quantum` (separate instances,
+    email+password, namespaced `sentry_*` / `quantum_*` Drizzle tables, `/api/auth/*` per worker,
+    seeded users). Gates M11/M12.
+11. **M11 Sentry booking UI**: React+Vite app on the `sentry` worker — login → book asset trades
+    (loan/bond) + blotter; assets binding + deploy build (mirror the `ui/web` wiring).
+12. **M12 Quantum booking UI**: same on `quantum` for liability trades (fx/irs/ccs).
+
+**Optional backlog:** **M7b** (give `ui` admin its own Better Auth instead of `ADMIN_TOKEN`);
+**M9** (copy/captions, demo-script rehearsal — full reset already shipped as admin "Clear
+archive").
 
 ## Open questions (from PLAN §13)
 
