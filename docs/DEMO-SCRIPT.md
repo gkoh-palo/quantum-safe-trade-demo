@@ -3,6 +3,10 @@
 A ~7-minute live walkthrough. Presenter drives the **Admin** view on one screen, audience
 watches the **Pitch** view on the main screen. Times are approximate.
 
+> For setup, URLs, logins, and how to use the booking UIs, see the **[Playbook](PLAYBOOK.md)**.
+> This file is just the narrated script. (Phase 2: in Act 1 you can also **book a Bond live from
+> the Sentry booking UI** instead of the admin injector — same pipeline, more tangible.)
+
 ---
 
 ## Act 0 — Setup (before the room)
