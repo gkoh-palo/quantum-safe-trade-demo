@@ -60,6 +60,22 @@ UI and expose a plain HTTP trade API, so another team can build a further quantu
 on either one without touching the demo. Every booked trade flows through the real encrypt →
 wire → harvest → migrate path, so it shows up in the pitch immediately.
 
+## Deploy your own
+
+One script stands the whole thing up on a fresh Cloudflare account — it creates the queues,
+builds and deploys the five workers, sets every runtime secret (generating the random ones and
+saving them to a gitignored file), runs the database migrations, and seeds the demo users. All
+it needs from you is a Neon Postgres URL:
+
+```bash
+pnpm install
+pnpm exec wrangler login          # or export CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+NEON_DATABASE_URL="postgres://…" ./scripts/setup.sh
+```
+
+It's idempotent — re-run it anytime, and it reuses the secrets it generated. Details and the
+per-worker breakdown are in the [Playbook](docs/PLAYBOOK.md).
+
 ## Docs
 
 - **[docs/PLAYBOOK.md](docs/PLAYBOOK.md)** — how to use the services and how to run a demo.
