@@ -22,12 +22,13 @@ self-running cron feeds — all green and verified in production (incl. the keyr
 PR #13, that resolved the "$0 / RSA looks safe" bug).
 
 **Phase 2 in progress (PLAN §14):** standalone products — each system serves its own booking UI
-behind its own Better Auth. **M10 done — in review:** `@qstd/auth` (per-system Better Auth,
-email+password, sign-up disabled), namespaced `sentry_*`/`quantum_*` tables + `trades.booked_by`
-(migration `0004`); sentry/quantum mount `/api/auth/*`, gate `POST /trades` (records `booked_by`),
-and support `GET /trades?mine=1`. Next: **M11** (Sentry booking UI), **M12** (Quantum booking UI)
-— each a React app served from its worker, login → book → per-user blotter, mirroring the `ui/web`
-build wiring. **Decisions locked (PLAN §14):** no roles, per-user blotter via `trades.booked_by`,
+behind its own Better Auth. **M10 done + verified live; M11 done — in review.** M10: `@qstd/auth`
+(per-system Better Auth, sign-up disabled), namespaced `sentry_*`/`quantum_*` tables +
+`trades.booked_by` (migration `0004`). **M11: the Sentry booking UI** — a React app served from
+the `sentry` worker (login → book loan/bond → per-user blotter), plus an **internal-token bypass**
+so the cron/injector keep working through the now-gated `POST /trades`. Next: **M12** (Quantum
+booking UI — the same config-driven app on the `quantum` worker). **Decisions locked (PLAN §14):**
+no roles, per-user blotter via `trades.booked_by`,
 admin-seeded accounts (no self sign-up), HTTP API contract (no RPC). (Optional backlog: **M7b** admin Better
 Auth, **M9** copy/rehearsal polish.)
 
@@ -36,15 +37,16 @@ DB seeded; smoke-tested live. Workers at `https://qstd-<name>.gkoh.workers.dev`.
 lives at the `ui` root; headless pitch still works:
 `POST ui /api/era/advance` → `POST hacker /break` → `GET hacker /scorecard`.
 
-**Deploy prerequisites (M10):** migration `0004` (auth tables + `booked_by`) applies via the
-migrate job. Set per-system Better Auth secrets:
-`wrangler secret put BETTER_AUTH_SECRET --name qstd-sentry` (and `qstd-quantum`), and
-`wrangler secret put BETTER_AUTH_URL --name qstd-sentry` = `https://qstd-sentry.gkoh.workers.dev`
-(quantum → its own origin). Then seed demo users: put `NEON_DATABASE_URL` + `BETTER_AUTH_SECRET`
-in `packages/auth/.env` and run `pnpm --filter @qstd/auth seed` (creates `demo@sentry.local` /
-`demo@quantum.local`, password `password1234`). **Until secrets are set, `POST /trades` 401s.**
-Prior prereqs still stand: M8 crons no-op until toggled; `ADMIN_TOKEN` on `ui`; `NEON_DATABASE_URL`
-on all of sentry/quantum/hacker/ui/**integration**.
+**Deploy prerequisites (M11):** the deploy job now builds `workers/sentry/web/dist` (generic
+asset-build step). **Set `INTERNAL_TOKEN` (same value) on `ui`, `sentry`, and `quantum`** —
+`wrangler secret put INTERNAL_TOKEN --name qstd-<w>` — else the cron/injector hit the now-gated
+`POST /trades` and 401. The Sentry booking UI is served at the `sentry` worker root
+(`https://qstd-sentry.gkoh.workers.dev`).
+
+**M10 prereqs (done live 2026-06-11):** migration `0004` applied; `BETTER_AUTH_SECRET` +
+`BETTER_AUTH_URL` set on sentry & quantum; demo users seeded (`demo@sentry.local` /
+`demo@quantum.local`, `password1234`). Prior prereqs still stand: M8 crons no-op until toggled;
+`ADMIN_TOKEN` on `ui`; `NEON_DATABASE_URL` on all of sentry/quantum/hacker/ui/**integration**.
 
 ## Repo & access
 
@@ -120,9 +122,13 @@ Vitest `passWithNoTests`). The `/check` skill runs and fixes it. CI enforces the
     login → gated booking → cross-system isolation all confirmed. (Seed fix: better-auth blocks
     server `signUpEmail` under `disableSignUp`, so the seed uses an `allowSignUp: true` instance;
     runtime workers stay gated.)
-11. **M11 Sentry booking UI**: React+Vite app on the `sentry` worker — login → book asset trades
-    (loan/bond) + blotter; assets binding + deploy build (mirror the `ui/web` wiring).
-12. **M12 Quantum booking UI**: same on `quantum` for liability trades (fx/irs/ccs).
+11. ✅ **M11 Sentry booking UI** — `workers/sentry/web` (React+Vite, served via the `sentry`
+    worker's assets binding): login → book loan/bond → per-user blotter (`?mine=1`). Generic build
+    wiring (`workers/*/web`, deploy builds any worker with a `build` script). Plus the
+    `INTERNAL_TOKEN` bypass so the cron/injector survive the gate. **Needs live verify** after
+    setting `INTERNAL_TOKEN` (book via the UI; confirm cron/injector restored).
+12. **M12 Quantum booking UI**: the same config-driven app on the `quantum` worker (fx/irs/ccs) —
+    add `workers/quantum/web` (copy sentry's with a Quantum `SYSTEM` block) + the assets binding.
 
 **Optional backlog:** **M7b** (give `ui` admin its own Better Auth instead of `ADMIN_TOKEN`);
 **M9** (copy/captions, demo-script rehearsal — full reset already shipped as admin "Clear

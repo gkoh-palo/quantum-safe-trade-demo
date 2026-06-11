@@ -21,6 +21,9 @@ export interface AppDeps {
   trades: TradesRepository;
   wire?: WireEmitter;
   auth?: AuthProvider;
+  /** Shared secret letting trusted internal callers (ui injector / cron) bypass the
+   * user-auth gate via an `x-internal-token` header (PLAN §14). */
+  internalToken?: string;
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -33,8 +36,10 @@ export function createApp(deps: AppDeps): Hono {
   }
 
   app.post("/trades", async (c) => {
+    const internal =
+      !!deps.internalToken && c.req.header("x-internal-token") === deps.internalToken;
     let bookedBy: string | null = null;
-    if (deps.auth) {
+    if (!internal && deps.auth) {
       const user = await deps.auth.requireUser(c.req.raw);
       if (!user) return c.json(errorBody("UNAUTHENTICATED", "Log in to book a trade"), 401);
       bookedBy = user.id;

@@ -24,6 +24,7 @@ export { EpochClock };
 interface Env {
   readonly NEON_DATABASE_URL: string;
   readonly ADMIN_TOKEN?: string;
+  readonly INTERNAL_TOKEN?: string;
   readonly EPOCH: DurableObjectNamespace<EpochClock>;
   readonly ASSETS: Fetcher;
   readonly SENTRY: Fetcher;
@@ -36,16 +37,22 @@ const GENERATE_CRON = "*/1 * * * *"; // trade-generator
 const TICK_CRON = "*/2 * * * *"; // epoch-tick
 
 // Generate one random trade through the originating worker's seal + emit path.
+// Sends the internal token so the system feed bypasses the booking auth gate.
 async function generateTrade(env: Env): Promise<void> {
   const system: System = Math.random() < 0.5 ? "sentry" : "quantum";
   const target = system === "sentry" ? env.SENTRY : env.QUANTUM;
   await target.fetch(
     new Request("https://svc/trades", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...internalHeader(env) },
       body: JSON.stringify(randomTradeBody(system)),
     }),
   );
+}
+
+/** Header that lets the ui's service-binding calls bypass the per-system booking gate. */
+export function internalHeader(env: { INTERNAL_TOKEN?: string }): Record<string, string> {
+  return env.INTERNAL_TOKEN ? { "x-internal-token": env.INTERNAL_TOKEN } : {};
 }
 
 export default {

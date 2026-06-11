@@ -16,4 +16,12 @@
       { "binding": "HARVEST_TAP", "queue": "harvest-tap" },
     ],
   },
+  // Phase 2: serve the React booking app (workers/sentry/web) as static assets. The
+  // Worker handles /api/auth/*, /trades and /health; the assets binding does SPA
+  // fallback for everything else. Built to web/dist by `pnpm --filter @qstd/sentry build`.
+  "assets": {
+    "directory": "./web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+  },
 }

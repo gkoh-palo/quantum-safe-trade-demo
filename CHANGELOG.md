@@ -12,6 +12,18 @@ everything currently lives under **[Unreleased]**.
 
 ### Added
 
+- **2026-06-11 — M11 Sentry booking UI (Phase 2).** A React + Vite app served from the `sentry`
+  worker itself (Workers Assets, SPA fallback via the Hono `notFound`): **log in** (Better Auth)
+  → **book asset trades** (loan/bond) → a **per-user blotter** (`GET /trades?mine=1`). Booked
+  trades go through the real seal + emit path, so they still feed the HNDL pitch. Build wiring is
+  now generic — `workers/*/web` is a workspace + excluded from root lint/typecheck, and the deploy
+  job builds any worker that has a `build` script (so M12's Quantum UI is drop-in). The app is
+  config-driven (a `SYSTEM` block) so Quantum reuses it.
+  - **Internal-bypass (fixes an M10 regression):** gating `POST /trades` had also blocked the
+    trusted internal callers — the admin trade-injector and the cron trade-generator reach it via
+    service bindings with no session. They now send an `x-internal-token`; sentry/quantum bypass
+    the user-auth gate when it matches `INTERNAL_TOKEN` (PLAN §14: internal hops bypass user auth).
+    System-fed trades carry no `booked_by`. 71 tests (+2 bypass). All workers bundle clean.
 - **2026-06-11 — M10 per-system Better Auth (Phase 2).** Sentry & Quantum each run their **own**
   Better Auth (email+password, **self sign-up disabled** — accounts are admin-seeded), mapped onto
   their own namespaced tables (`sentry_*` / `quantum_*`) on the shared Neon DB (migration `0004`,
