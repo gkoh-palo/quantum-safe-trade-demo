@@ -57,17 +57,55 @@ jobs:
     outputs:
       dirs: ${{ steps.find.outputs.dirs }}
       has: ${{ steps.find.outputs.has }}
+      has_ui: ${{ steps.find.outputs.has_ui }}
     steps:
       - uses: actions/checkout@v4
-      - name: Find deployable workers
+        with:
+          fetch-depth: 0 # Turbo needs git history to diff against the previous commit.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Select affected workers
         id: find
         run: |
-          dirs=$(find workers -mindepth 2 -maxdepth 2 \( -name 'wrangler.toml' -o -name 'wrangler.jsonc' \) 2>/dev/null \
-            | xargs -r -n1 dirname | sort -u | jq -R . | jq -s -c .)
-          dirs=${dirs:-[]}
-          echo "dirs=$dirs" >> "$GITHUB_OUTPUT"
-          if [ "$dirs" = "[]" ]; then echo "has=false" >> "$GITHUB_OUTPUT"; else echo "has=true" >> "$GITHUB_OUTPUT"; fi
-          echo "Deployable workers: $dirs"
+          # Only deploy workers whose own code — or a package they depend on — changed
+          # since the previous commit on main. Turbo's `...[ref]` selects packages changed
+          # since <ref> PLUS every package that depends on them, so a shared change
+          # (e.g. @qstd/crypto) correctly re-deploys all the workers that import it.
+          BASE="${{ github.event.before }}"
+          all_workers() {
+            find workers -mindepth 2 -maxdepth 2 \( -name 'wrangler.toml' -o -name 'wrangler.jsonc' \) \
+              | xargs -r -n1 dirname | sort -u
+          }
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            echo "No usable base commit — deploying all workers."
+            affected="$(all_workers)"
+          else
+            echo "Affected since $BASE (changed packages + their dependents):"
+            # Only the 5 workers define a `deploy` task, so this lists affected workers.
+            # Turbo emits a phantom `deploy` task for every package; keep only the ones
+            # that actually have the script (command != <NONEXISTENT>) — i.e. the workers.
+            affected="$(pnpm exec turbo run deploy --filter="...[${BASE}]" --dry-run=json 2>/dev/null \
+              | jq -r '.tasks[] | select(.task=="deploy" and .command != "<NONEXISTENT>") | .package' \
+              | sed 's#@qstd/#workers/#' | sort -u)"
+          fi
+          echo "$affected"
+          # Phase 1 = affected workers EXCEPT the ui BFF. ui binds qstd-keystone/qstd-helix
+          # via Service Bindings; Cloudflare rejects a deploy whose binding targets a worker
+          # with no deployments yet (code 10145), so ui deploys in phase 2 (deploy-bff).
+          nonui="$(printf '%s\n' "$affected" | grep -E '^workers/' | grep -vx 'workers/ui' | jq -R . | jq -s -c .)"
+          nonui="${nonui:-[]}"
+          echo "dirs=$nonui" >> "$GITHUB_OUTPUT"
+          [ "$nonui" = "[]" ] && echo "has=false" >> "$GITHUB_OUTPUT" || echo "has=true" >> "$GITHUB_OUTPUT"
+          if printf '%s\n' "$affected" | grep -qx 'workers/ui'; then
+            echo "has_ui=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_ui=false" >> "$GITHUB_OUTPUT"
+          fi
 
   deploy:
     name: Deploy ${{ matrix.dir }}
@@ -109,5 +147,35 @@ jobs:
           # `npm i wrangler` inside a worker dir: npm can't parse the `workspace:^`
           # deps (e.g. @qstd/db) and dies with EUNSUPPORTEDPROTOCOL. packageManager
           # pnpm is the belt-and-suspenders for any fallback install.
+          packageManager: pnpm
+          command: deploy
+
+  # Phase 2: the ui BFF. It has Service Bindings to qstd-keystone / qstd-helix, which
+  # must already have a deployment, so it runs after the phase-1 matrix. `always()`
+  # lets it deploy even when no services were affected this push (deploy is skipped),
+  # as long as ui itself was affected.
+  deploy-bff:
+    name: Deploy workers/ui (BFF)
+    needs: [discover, deploy]
+    if: always() && needs.discover.outputs.has_ui == 'true' && needs.deploy.result != 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build worker assets
+        working-directory: workers/ui
+        run: pnpm build
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/ui
           packageManager: pnpm
           command: deploy

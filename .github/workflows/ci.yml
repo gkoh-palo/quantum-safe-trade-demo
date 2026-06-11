@@ -1,9 +1,16 @@
 name: CI
 
 on:
+  # PRs always run the full gate (it's the required check + the suite is fast). Pushes
+  # to main skip it for doc-only changes — nothing testable changed.
   pull_request:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
 
 concurrency:
   group: ci-${{ github.ref }}
