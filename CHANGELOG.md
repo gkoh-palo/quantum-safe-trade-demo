@@ -120,6 +120,13 @@ everything currently lives under **[Unreleased]**.
 
 ### Changed
 
+- **2026-06-11 — Plan: Phase 2 added (trade-booking product).** New requirements folded into
+  `docs/PLAN.md`: Sentry & Quantum each get their **own trade-booking UI** behind their **own
+  Better Auth** (separate login per system), so users can book trades and a separate team can
+  build a quantum-safe POC layer on either system. Decisions: per-worker standalone UIs
+  (`workers/{sentry,quantum}/web`) + separate per-system auth (namespaced Drizzle tables). Updated
+  §3/§6/§7/§9/§11/§13 and added §14; new milestones **M10–M12**. No code yet — Phase 1 (M0–M8) is
+  the paused, deployed demo.
 - **2026-06-09 — Commit convention.** Stop appending the `Co-Authored-By: Claude` trailer to
   commits (recorded in CLAUDE.md → Commits).
 

@@ -75,22 +75,24 @@ travels on the wire.
 
 ## 3. Cloudflare resource map
 
-| Resource          | Name              | Purpose                                                                        |
-| ----------------- | ----------------- | ------------------------------------------------------------------------------ |
-| Worker            | `sentry`          | Asset-trade REST API; encrypts + emits wire messages                           |
-| Worker            | `quantum`         | Liability-trade REST API; receives migrated trades                             |
-| Worker            | `integration`     | Queue consumer; maps + re-encrypts + forwards                                  |
-| Worker            | `hacker`          | Harvest tap + break engine                                                     |
-| Worker            | `ui`              | Static React assets + BFF/admin endpoints                                      |
-| Queue             | `trade-migration` | Async Sentry⇄Quantum handoff (producer: sentry/quantum, consumer: integration) |
-| Queue             | `harvest-tap`     | Fan-out of ciphertext to the hacker (decouples capture from break)             |
-| Durable Object    | `EpochClock`      | Single global era state (classical/quantum) + CRQC progress %                  |
-| Durable Object    | `HarvestArchive`  | Append-only loot log, break orchestration, per-key cache                       |
-| Cron              | `*/1 * * * *`     | `trade-generator` — emits random trades to keep the feed live                  |
-| Cron              | `*/2 * * * *`     | `epoch-tick` — advances CRQC progress when in auto mode                        |
-| Hyperdrive (opt.) | `neon`            | Pooled Postgres access from Workers                                            |
+| Resource          | Name              | Purpose                                                                           |
+| ----------------- | ----------------- | --------------------------------------------------------------------------------- |
+| Worker            | `sentry`          | Asset-trade REST API **+ booking UI + Better Auth**; encrypts + emits wire msgs   |
+| Worker            | `quantum`         | Liability-trade REST API **+ booking UI + Better Auth**; receives migrated trades |
+| Worker            | `integration`     | Queue consumer; maps + re-encrypts + forwards                                     |
+| Worker            | `hacker`          | Harvest tap + break engine                                                        |
+| Worker            | `ui`              | Pitch + admin React app + BFF/control endpoints                                   |
+| Queue             | `trade-migration` | Async Sentry⇄Quantum handoff (producer: sentry/quantum, consumer: integration)    |
+| Queue             | `harvest-tap`     | Fan-out of ciphertext to the hacker (decouples capture from break)                |
+| Durable Object    | `EpochClock`      | Single global era state (classical/quantum) + CRQC progress %                     |
+| Durable Object    | `HarvestArchive`  | Append-only loot log, break orchestration, per-key cache                          |
+| Cron              | `*/1 * * * *`     | `trade-generator` — emits random trades to keep the feed live                     |
+| Cron              | `*/2 * * * *`     | `epoch-tick` — advances CRQC progress when in auto mode                           |
+| Hyperdrive (opt.) | `neon`            | Pooled Postgres access from Workers                                               |
 
-Secrets via `wrangler secret`: `NEON_DATABASE_URL`, `ADMIN_TOKEN`, per-service `SIGNING_SEED`.
+Secrets via `wrangler secret`: `NEON_DATABASE_URL`, `ADMIN_TOKEN`, per-service `SIGNING_SEED`,
+and per-system `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` (Phase 2 — sentry & quantum each run
+their own auth; see §11/§14).
 
 ---
 
@@ -192,8 +194,10 @@ quantum-safe-trade-demo/
 │  ├─ crypto/                    # scheme registry: seal()/open()/sign()/verify()/break()
 │  └─ db/                        # drizzle schema, migrations, seed, neon client
 ├─ workers/
-│  ├─ sentry/                    # asset-trade API   (wrangler.toml + src)
-│  ├─ quantum/                   # liability-trade API
+│  ├─ sentry/                    # asset-trade API + Better Auth, serves its own booking UI
+│  │  └─ web/                    # Vite + React: login + book asset trades (Phase 2)
+│  ├─ quantum/                   # liability-trade API + Better Auth, serves its own booking UI
+│  │  └─ web/                    # Vite + React: login + book liability trades (Phase 2)
 │  ├─ integration/              # queue consumer, mapper, re-encrypt + forward
 │  ├─ hacker/                    # HarvestArchive DO + break engine + "decrypt later" API
 │  └─ ui/                        # EpochClock DO, BFF/admin endpoints, serves React assets
@@ -209,7 +213,11 @@ hacker agree on `seal/open/sign/verify/break` for each scheme key in §5.
 
 ---
 
-## 7. Front-end: two views
+## 7. Front-end
+
+The demo has two presenter-facing views in the `ui` worker (pitch + admin). **Phase 2 (§14)**
+adds a third surface: a **trade-booking UI on each business system**, so real users log in and
+book trades directly into Sentry and Quantum.
 
 ### Pitch view (`/pitch`) — cinematic, presenter-facing
 
@@ -232,6 +240,22 @@ hacker agree on `seal/open/sign/verify/break` for each scheme key in §5.
 
 Stack: **React + Vite**, served as static assets from `ui-worker`; data via BFF endpoints +
 SSE/poll for the live feed. Recharts for the scorecard, framer-motion for packet animation.
+
+### Booking UIs (per system) — real user-facing apps (Phase 2, §14)
+
+Each business worker serves **its own** React + Vite app from its own Workers Assets binding,
+gated by that system's **own Better Auth** (§11):
+
+- **Sentry booking UI** (served at the `sentry` worker root) — log in, then list and **book
+  asset trades** (loans, bonds): a real create-trade form (the same Zod-validated `POST /trades`)
+  plus a list/blotter of the user's trades. Every booked trade flows through the normal
+  seal → wire → harvest → migrate pipeline, so the pitch view stays live with genuine traffic.
+- **Quantum booking UI** (served at the `quantum` worker root) — the same, for **liability
+  trades** (FX, IRS, CCS).
+
+These are deliberately standalone so a separate team can build a further quantum-safe POC layer
+on either system independently. Keep them simple and product-like (not cinematic) — login,
+book, see your blotter.
 
 ---
 
@@ -270,6 +294,25 @@ SSE/poll for the live feed. Recharts for the scorecard, framer-motion for packet
 **Critical path:** M2 (crypto) gates M3/M4; M3+M4 gate the pitch payoff (M6). Build M2 first
 and hardest — everything credible flows from it.
 
+### Phase 2 — trade-booking product (new requirements, §14)
+
+Turns the two business systems into standalone, authenticated, UI-bearing products that a
+separate team can layer a further quantum-safe POC on. M0–M8 are complete and deployed; M10–M12
+are the new scope.
+
+| #   | Milestone          | Deliverable                                                                                                                                                                 |
+| --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M10 | Per-system auth    | **Better Auth** on `sentry` **and** `quantum` — separate instances, email+pwd, namespaced Drizzle tables (`sentry_*` / `quantum_*`), `/api/auth/*` per worker, seeded users |
+| M11 | Sentry booking UI  | React+Vite app on `sentry`: login → book asset trades (loan/bond) + personal blotter; gated by Sentry auth; assets binding + deploy build                                   |
+| M12 | Quantum booking UI | Same on `quantum` for liability trades (fx/irs/ccs)                                                                                                                         |
+
+(Optional, pre-existing backlog: **M7b** — give the `ui` admin its own Better Auth instead of
+the `ADMIN_TOKEN` break-glass.)
+
+**Phase 2 critical path:** M10 (per-system auth) gates M11/M12 (each booking UI sits behind its
+system's login). The booking forms reuse the existing Zod `POST /trades` + seal/emit path, so no
+new backend pipeline is needed — only auth + the two front-ends.
+
 ---
 
 ## 10. Key risks & mitigations
@@ -288,28 +331,37 @@ and hardest — everything credible flows from it.
 
 ## 11. Authentication — Better Auth
 
-The **Admin** control plane must be gated; the **Pitch** view is public. We use
-[**Better Auth**](https://www.better-auth.com) for a fast, framework-agnostic setup that
-runs on Workers and persists to the same Neon database.
+We use [**Better Auth**](https://www.better-auth.com) (framework-agnostic, runs on Workers,
+persists to Neon). There are now **two distinct auth concerns**:
 
-- **Where it lives:** in `ui-worker` (the BFF). It owns `/api/auth/*` and protects
-  `/admin` + all admin/control endpoints (set scheme, advance era, inject trade, reset).
-  The business Workers (`sentry`/`quantum`/`integration`/`hacker`) are reached only via
-  Service Bindings from the BFF, so they don't need their own auth surface.
-- **Adapter:** Better Auth **Drizzle adapter** against Neon Postgres — its tables
-  (`user`, `session`, `account`, `verification`) live alongside our app schema and are
-  generated via the Better Auth CLI (`npx @better-auth/cli generate`), then folded into our
-  Drizzle migrations so one `migrate` provisions everything.
-- **Method:** email + password (simplest for a demo) with a single seeded admin account;
-  GitHub OAuth is a drop-in later if a prospect wants SSO.
-- **Session:** cookie-based sessions stored in Neon; admin endpoints check
-  `auth.api.getSession()` and 401 otherwise. Keep a server-only `ADMIN_TOKEN` as a
-  break-glass header for the cron/agent paths that aren't browser sessions.
-- **Secrets:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (the deployed UI origin),
-  `NEON_DATABASE_URL` — all via `wrangler secret` / GitHub Actions secrets, never committed.
+### 11a. Per-system user auth (Phase 2 — the new requirement)
 
-See the **`/neon-db`** and **`/cloudflare-workers`** skills for the adapter wiring and
-Workers specifics.
+Each business system owns its **own** Better Auth so users log in to **Sentry** and **Quantum**
+**separately** (the decision: separate auth per system — stronger isolation between the two
+"vendor" systems, and each is independently consumable by another team).
+
+- **Where it lives:** in the `sentry` and `quantum` workers themselves. Each owns `/api/auth/*`
+  and gates its booking UI + its mutating `POST /trades`. This changes the earlier posture where
+  business workers only trusted Service-Binding calls — they now also authenticate their own
+  browser users. (Internal hops — integration's migrate, the ui injector — still go via Service
+  Bindings and bypass user auth.)
+- **Adapter:** Better Auth **Drizzle adapter** against the shared Neon DB. Because both run on
+  one database, **namespace each system's tables** (`sentry_user`/`sentry_session`/… and
+  `quantum_user`/…) — Better Auth's `usePlural`/table-name config, generated via the CLI and
+  folded into our Drizzle migrations so one `migrate` provisions everything.
+- **Method:** email + password, with seeded demo users per system.
+- **Session:** cookie-based, scoped to each worker's origin; protected routes check
+  `auth.api.getSession()` and 401 otherwise.
+- **Secrets (per system):** `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL` (that worker's origin),
+  plus the shared `NEON_DATABASE_URL`.
+
+### 11b. Admin control plane
+
+The `/admin` view in `ui` is currently gated by an `ADMIN_TOKEN` break-glass header (shipped in
+M7). Optionally (M7b) give it its own Better Auth instance too; keep `ADMIN_TOKEN` for the
+cron/agent paths that aren't browser sessions. The **Pitch** view stays public.
+
+See the **`/neon-db`** and **`/cloudflare-workers`** skills for adapter + Workers specifics.
 
 ---
 
@@ -337,10 +389,49 @@ token + the migration DB URL.
 
 ---
 
-## 13. Open questions for the next session
+## 13. Open questions
 
 1. **Break mode default** — ship `genuine` (real live factoring, small keys) or `projected`
    (real keys, simulated countdown) as the out-of-the-box pitch default?
 2. **Mapping fidelity** — how realistic should Sentry⇄Quantum field mapping be? (Mirror the
    real cc-integrations asset/liability mappings, or a representative subset?)
 3. **Branding** — neutral demo branding, or skinned for a specific prospect?
+4. **Phase 2 — user/role model** — do booking users need roles (e.g. booker vs viewer), or is
+   "any logged-in user can book on this system" enough for the POC?
+5. **Phase 2 — trade ownership** — should the blotter scope to the logged-in user's own trades,
+   or show the whole system's book? (Add a `booked_by` column to `trades` if per-user.)
+6. **Phase 2 — sign-up** — open self-registration, or admin-seeded accounts only?
+7. **Phase 2 — what the other team consumes** — do they build on the **HTTP API** (auth +
+   `POST /trades`) or also need typed **service-binding / RPC** entrypoints?
+
+---
+
+## 14. Phase 2 — from demo to platform (new requirements)
+
+The M0–M8 build is a working HNDL **demo**. Phase 2 turns the two business systems into
+standalone, authenticated, UI-bearing **products**, so a **separate team can build a further
+quantum-safe POC layer** on either one independently.
+
+**Requirements (as stated):**
+
+1. Sentry **and** Quantum each have a **trade-booking user interface**.
+2. Both are **loginable via Better Auth**.
+3. Logged-in users can **interact with both systems to book trades**.
+
+**Decisions taken** (see §7 booking UIs, §9 M10–M12, §11a):
+
+- **UI placement:** each business worker **serves its own** booking UI (standalone systems), not
+  a shared front-end. → `workers/sentry/web`, `workers/quantum/web`.
+- **Auth:** **separate Better Auth per system** (Sentry login ≠ Quantum login), namespaced
+  Drizzle tables on the shared Neon DB.
+
+**Implications / notes:**
+
+- The business workers gain a **public, auth-gated surface** (login + booking) on top of the
+  internal service-binding trust they already have. Internal hops (integration migrate, ui
+  injector) stay on Service Bindings and bypass user auth.
+- **No new backend pipeline** — booking reuses the existing Zod `POST /trades` + seal/emit path,
+  so booked trades still flow through harvest/migrate/break and keep the pitch view live.
+- Keep the demo (`ui` pitch/admin) and the product (per-system booking UIs) as **separate
+  surfaces** so neither complicates the other.
+- The build is currently **paused here** (M0–M8 done); Phase 2 (M10–M12) is queued, not started.
