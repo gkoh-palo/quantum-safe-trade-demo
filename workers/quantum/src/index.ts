@@ -14,6 +14,7 @@ interface Env {
   readonly INTERNAL_TOKEN?: string;
   readonly MIGRATION: QueueProducer<MigrationMessage>;
   readonly HARVEST_TAP: QueueProducer<HarvestMessage>;
+  readonly ASSETS: { fetch(request: Request): Response | Promise<Response> };
 }
 
 export default {
@@ -37,6 +38,7 @@ export default {
       wire,
       auth,
       internalToken: env.INTERNAL_TOKEN,
+      assets: env.ASSETS,
     }).fetch(request);
   },
 };

@@ -17,6 +17,11 @@ import type { Collection, Trade } from "@qstd/shared";
 const SYSTEM = "quantum" as const;
 const CreateTrade = makeCreateTradeSchema(QUANTUM_PRODUCTS);
 
+/** The Workers Assets binding — structural so we don't pull in @cloudflare/workers-types. */
+export interface AssetFetcher {
+  fetch(request: Request): Response | Promise<Response>;
+}
+
 export interface AppDeps {
   trades: TradesRepository;
   wire?: WireEmitter;
@@ -24,6 +29,8 @@ export interface AppDeps {
   /** Shared secret letting trusted internal callers (ui injector / cron) bypass the
    * user-auth gate via an `x-internal-token` header (PLAN §14). */
   internalToken?: string;
+  /** Optional: the static booking app. When present, unmatched routes serve the SPA. */
+  assets?: AssetFetcher;
 }
 
 export function createApp(deps: AppDeps): Hono {
@@ -90,6 +97,12 @@ export function createApp(deps: AppDeps): Hono {
     const trade = await deps.trades.get(c.req.param("id"));
     if (!trade) return c.json(errorBody("NOT_FOUND", "Trade not found"), 404);
     return c.json(trade);
+  });
+
+  // Unmatched routes → the booking SPA (assets binding), or a JSON 404 in tests.
+  app.notFound((c) => {
+    if (deps.assets) return deps.assets.fetch(c.req.raw);
+    return c.json(errorBody("NOT_FOUND", "Unknown endpoint"), 404);
   });
 
   app.onError((err, c) => {
