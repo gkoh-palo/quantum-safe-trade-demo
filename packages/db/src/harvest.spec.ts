@@ -169,4 +169,18 @@ describe("scorecard (summarizeScorecard)", () => {
     const hybrid = card.byScheme.find((s) => s.scheme === "hybrid-mlkem");
     expect(hybrid).toMatchObject({ harvested: 2, broken: 0, protected: 2, quantumSafe: true });
   });
+
+  it("counts a migrated position's notional once across its wire hops", () => {
+    // One $214k trade is sniffed twice (system → integration → counterpart), so two
+    // packets break — but they're the same economic position (same counterparty + notional).
+    const card = summarizeScorecard([
+      { scheme: "sha256", broken: true, exposedNotional: "214000", exposedCounterparty: "DBS" },
+      { scheme: "sha256", broken: true, exposedNotional: "214000", exposedCounterparty: "DBS" },
+    ]);
+
+    expect(card.totals.broken).toBe(2); // two packets really were broken
+    expect(card.totals.exposedNotional).toBe(214_000); // but one position's notional
+    expect(card.totals.leakedCounterparties).toBe(1);
+    expect(card.byScheme.find((s) => s.scheme === "sha256")?.exposedNotional).toBe(214_000);
+  });
 });

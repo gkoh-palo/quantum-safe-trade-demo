@@ -182,6 +182,13 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
+- **2026-06-12 — Exposed notional no longer double-counts the migration.** A booked trade is
+  sniffed on two wire hops (and again as its migrated counterpart), all carrying the same
+  notional, so the scorecard's "Notional exposed" summed it twice — e.g. one $214k trade showed
+  as $428k, inconsistently next to "1 counterparties leaked" (which was already deduped).
+  `summarizeScorecard` now deduplicates exposure by economic position (counterparty + notional),
+  so it reflects the real damage. Packet counts (harvested / broken) stay raw — Eve genuinely
+  captured and broke two ciphertexts. 1 new test.
 - **2026-06-12 — Wire feed no longer shows each trade as a duplicate.** Every booked trade hops
   keystone/helix → integration → the counterpart system, so it produces two wire messages (Eve
   sniffs both legs). Both were labelled with the same `from → to` (`keystone → helix`), so the
