@@ -6,9 +6,8 @@ cinematic pitch view with real, logged-in trade booking on two independent syste
 
 ## Walkthrough video
 
-> 📹 _Walkthrough video coming soon._
->
-> <!-- Add the walkthrough here, e.g.  [![Watch the walkthrough](docs/video-thumb.png)](VIDEO_URL)  -->
+**▶ [Watch the walkthrough](docs/demo.mp4)** — a short end-to-end tour: booking a trade,
+harvesting it on the wire, and advancing to the quantum era to break it.
 
 ## The story
 
