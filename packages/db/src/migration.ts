@@ -59,8 +59,11 @@ export async function migrateFromEnvelope(
   });
 
   // 4. Re-seal the migrated trade onto the wire to the target + mirror to the tap.
+  //    This is the integration layer forwarding the migrated leg, so the hop is
+  //    integration → target (distinct from the system's original keystone → integration
+  //    hop — they are two different sniffs, not one duplicated message).
   const { envelope: reSealed } = await sealAndPersist(db, {
-    fromService: source.system,
+    fromService: "integration",
     toService: target.system,
     payload: canonicalTradePayload(targetTrade),
   });

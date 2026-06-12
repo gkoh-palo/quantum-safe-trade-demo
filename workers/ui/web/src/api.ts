@@ -48,8 +48,8 @@ export interface Trade {
 
 export interface WireSummary {
   id: string;
-  fromService: "keystone" | "helix";
-  toService: "keystone" | "helix";
+  fromService: "keystone" | "helix" | "integration";
+  toService: "keystone" | "helix" | "integration";
   scheme: string;
   eraAtSend: string;
   createdAt: string;
