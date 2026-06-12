@@ -256,8 +256,13 @@ export interface Scorecard {
 export function summarizeScorecard(
   rows: Pick<Row, "scheme" | "broken" | "exposedNotional" | "exposedCounterparty">[],
 ): Scorecard {
-  const groups = new Map<string, SchemeScore & { _cps: Set<string> }>();
+  // Exposure is deduplicated by economic position (counterparty + notional), not by
+  // packet: a trade is sniffed on two wire hops (system → integration → counterpart)
+  // and again as its migrated counterpart, all carrying the same notional — counting
+  // it each time would inflate the damage. Packet counts (harvested/broken) stay raw.
+  const groups = new Map<string, SchemeScore & { _cps: Set<string>; _pos: Set<string> }>();
   const allCps = new Set<string>();
+  const allPos = new Set<string>();
   let harvested = 0;
   let broken = 0;
   let protectedTotal = 0;
@@ -278,6 +283,7 @@ export function summarizeScorecard(
         exposedNotional: 0,
         leakedCounterparties: 0,
         _cps: new Set<string>(),
+        _pos: new Set<string>(),
       };
       groups.set(scheme, g);
     }
@@ -287,8 +293,16 @@ export function summarizeScorecard(
       g.broken += 1;
       broken += 1;
       const n = r.exposedNotional === null ? 0 : Number(r.exposedNotional);
-      g.exposedNotional += n;
-      exposedNotional += n;
+      const posKey = `${r.exposedCounterparty ?? "?"}|${n}`;
+      // Same position seen twice (the migration's hops) → count its notional once.
+      if (!g._pos.has(posKey)) {
+        g._pos.add(posKey);
+        g.exposedNotional += n;
+      }
+      if (!allPos.has(posKey)) {
+        allPos.add(posKey);
+        exposedNotional += n;
+      }
       if (r.exposedCounterparty) {
         g._cps.add(r.exposedCounterparty);
         allCps.add(r.exposedCounterparty);
@@ -299,7 +313,7 @@ export function summarizeScorecard(
     }
   }
 
-  const byScheme = [...groups.values()].map(({ _cps, ...s }) => ({
+  const byScheme = [...groups.values()].map(({ _cps, _pos: _drop, ...s }) => ({
     ...s,
     leakedCounterparties: _cps.size,
   }));
