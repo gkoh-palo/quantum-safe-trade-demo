@@ -9,9 +9,7 @@ cinematic pitch view with real, logged-in trade booking on two independent syste
 A short end-to-end tour: booking a trade, harvesting it on the wire, and advancing to the
 quantum era to break it.
 
-<video src="https://github.com/gkoh-palo/quantum-safe-trade-demo/raw/main/docs/demo.mp4" controls muted loop playsinline width="100%"></video>
-
-> If the player doesn't appear, **▶ [watch the walkthrough](docs/demo.mp4)** directly.
+https://github.com/user-attachments/assets/1d482c55-d7c6-4f54-b5e2-b79d2faa259e
 
 ## The story
 
