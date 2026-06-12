@@ -4,7 +4,7 @@
 import { desc } from "drizzle-orm";
 import type { SealedMessage } from "@qstd/crypto";
 import { bytesToHex, hexToBytes, seal } from "@qstd/crypto";
-import type { Era, System, WireEnvelope } from "@qstd/shared";
+import type { Era, WireEnvelope, WireService } from "@qstd/shared";
 import type { Database } from "./client.js";
 import { cryptoConfigRepo } from "./crypto-config.js";
 import { wireMessages } from "./schema.js";
@@ -14,8 +14,8 @@ const bytesOrNull = (h: string | null): Uint8Array | null => (h ? hexToBytes(h) 
 
 export function sealedToEnvelope(
   wireMessageId: string,
-  fromService: System,
-  toService: System,
+  fromService: WireService,
+  toService: WireService,
   eraAtSend: Era,
   sealed: SealedMessage,
 ): WireEnvelope {
@@ -45,8 +45,8 @@ export function envelopeToSealed(env: WireEnvelope): SealedMessage {
 }
 
 export interface InsertWireMessage {
-  fromService: System;
-  toService: System;
+  fromService: WireService;
+  toService: WireService;
   eraAtSend: Era;
   sealed: SealedMessage;
 }
@@ -91,7 +91,7 @@ export function wireMessagesRepo(db: Database) {
  */
 export async function sealAndPersist(
   db: Database,
-  args: { fromService: System; toService: System; payload: Uint8Array },
+  args: { fromService: WireService; toService: WireService; payload: Uint8Array },
 ): Promise<{ wireMessageId: string; envelope: WireEnvelope }> {
   const cfg = await cryptoConfigRepo(db).ensureActive();
   const sealed = await seal(cfg.scheme, args.payload, cfg.keyring);

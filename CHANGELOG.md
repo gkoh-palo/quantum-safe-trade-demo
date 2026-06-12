@@ -182,6 +182,14 @@ everything currently lives under **[Unreleased]**.
 
 ### Fixed
 
+- **2026-06-12 — Wire feed no longer shows each trade as a duplicate.** Every booked trade hops
+  keystone/helix → integration → the counterpart system, so it produces two wire messages (Eve
+  sniffs both legs). Both were labelled with the same `from → to` (`keystone → helix`), so the
+  live wire feed showed two identical rows per trade and read as a duplicate. The legs are now
+  labelled accurately — `keystone → integration` then `integration → helix` — matching the real
+  hop path. New `WireService` type (`System | "integration"`) carries the integration layer as a
+  distinct wire endpoint. (The two trade rows — the booking and its migrated counterpart on the
+  other system — are by design: that's the migration, not a duplicate.)
 - **2026-06-11 — Seeding worked around Better Auth's disabled sign-up.** With
   `disableSignUp: true`, better-auth 1.6.16 rejects **server-side** `signUpEmail` too
   (`EMAIL_PASSWORD_SIGN_UP_DISABLED`) — so the M10 seed silently no-op'd (and `seedUser`

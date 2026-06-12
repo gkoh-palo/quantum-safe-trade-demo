@@ -1,7 +1,7 @@
 // Read-side aggregation for the pitch UI BFF (PLAN §7): counts, the scorecard, and
 // recent trades + wire messages, in one round of queries.
 import { desc } from "drizzle-orm";
-import type { System, Trade, WireEnvelope } from "@qstd/shared";
+import type { Trade, WireEnvelope, WireService } from "@qstd/shared";
 import type { Database } from "./client.js";
 import type { Scorecard } from "./harvest.js";
 import { harvestedPacketsRepo, summarizeScorecard } from "./harvest.js";
@@ -11,8 +11,8 @@ import { trades as tradesTable, wireMessages } from "./schema.js";
 
 export interface WireSummary {
   id: string;
-  fromService: System;
-  toService: System;
+  fromService: WireService;
+  toService: WireService;
   scheme: string;
   eraAtSend: string;
   createdAt: string;
@@ -52,8 +52,8 @@ export async function getDashboardState(db: Database, limit = 8): Promise<Dashbo
     recentTrades: recentTrades.data,
     recentWire: wireRows.map((w) => ({
       id: w.id,
-      fromService: w.fromService as System,
-      toService: w.toService as System,
+      fromService: w.fromService as WireService,
+      toService: w.toService as WireService,
       scheme: w.scheme,
       eraAtSend: w.eraAtSend,
       createdAt: w.createdAt.toISOString(),

@@ -7,11 +7,18 @@ import type { System, Trade, TradeInput } from "./trades.js";
 
 export type Era = "classical" | "quantum";
 
+/**
+ * A wire endpoint: a trading system or the integration layer. Trades hop
+ * keystone/helix → integration → the counterpart system, so the wire records the
+ * integration layer as a distinct sender (not just the two systems).
+ */
+export type WireService = System | "integration";
+
 /** A sealed inter-service message, ready for transport. Mirrors `wire_messages`. */
 export interface WireEnvelope {
   wireMessageId: string;
-  fromService: System;
-  toService: System;
+  fromService: WireService;
+  toService: WireService;
   scheme: EncryptionScheme;
   eraAtSend: Era;
   ciphertextHex: string;

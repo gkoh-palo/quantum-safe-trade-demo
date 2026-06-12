@@ -3,7 +3,7 @@
 // then fan the envelope out to the trade-migration queue (legit handoff) and the
 // harvest-tap queue (Eve's ciphertext mirror). Queue bindings are passed in as a
 // minimal structural type so @qstd/db needn't depend on @cloudflare/workers-types.
-import type { HarvestMessage, MigrationMessage, System, Trade } from "@qstd/shared";
+import type { HarvestMessage, MigrationMessage, Trade, WireService } from "@qstd/shared";
 import { canonicalTradePayload } from "@qstd/shared";
 import type { Database } from "./client.js";
 import { sealAndPersist } from "./wire.js";
@@ -18,8 +18,8 @@ export interface WireEmitter {
 
 export function createWireEmitter(args: {
   db: Database;
-  fromService: System;
-  toService: System;
+  fromService: WireService;
+  toService: WireService;
   migration: QueueProducer<MigrationMessage>;
   harvest: QueueProducer<HarvestMessage>;
 }): WireEmitter {

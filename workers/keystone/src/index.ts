@@ -25,7 +25,7 @@ export default {
     const wire = createWireEmitter({
       db,
       fromService: "keystone",
-      toService: "helix",
+      toService: "integration",
       migration: env.MIGRATION,
       harvest: env.HARVEST_TAP,
     });
